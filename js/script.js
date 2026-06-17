@@ -18,7 +18,7 @@ const LS = {
   versao:      'meu4patas_versao'
 };
 
-const DATA_VERSION = '3';        // bump para reabastecer os pets iniciais
+const DATA_VERSION = '4';        // bump para reabastecer os pets iniciais
 const IDADE_MINIMA_ADOCAO = 21;  // idade mínima para demonstrar interesse em adoção
 const FILHOTE_MAX_MESES = 12;    // até 12 meses é considerado filhote
 
@@ -138,6 +138,246 @@ const INITIAL_PETS = [
       gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: false,
       vacinaPrincipal: '', condicaoEspecial: '', observacoes: 'Primeira dose de vacina agendada.'
     }
+  },
+  {
+    id: 7, nome: 'Bidu', especie: 'Cão', raca: 'Shih Tzu',
+    idade: '4 anos', idadeMeses: 48, sexo: 'Macho',
+    localizacao: 'São Paulo/SP', cidade: 'São Paulo', uf: 'SP', bairro: 'Vila Mariana',
+    status: 'Disponível', imagem: 'assets/pet-7.jpg',
+    descricao: 'Bidu é um companheiro tranquilo, adora colo e se adapta muito bem a apartamento.',
+    temperamento: ['Calmo', 'Companheiro', 'Dócil'],
+    larIdeal: ['Apartamento', 'Ambiente calmo'],
+    responsavel: { nome: 'ONG Amor de Patas', telefone: '(11) 95555-1111', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: true, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Pet saudável e sociável.' }
+  },
+  {
+    id: 8, nome: 'Amora', especie: 'Cão', raca: 'Poodle',
+    idade: '2 anos', idadeMeses: 24, sexo: 'Fêmea',
+    localizacao: 'Rio de Janeiro/RJ', cidade: 'Rio de Janeiro', uf: 'RJ', bairro: 'Tijuca',
+    status: 'Adotado', imagem: 'assets/pet-8.jpg',
+    descricao: 'Amora já encontrou um novo lar! Exemplo de adoção feliz através do meu4patas.',
+    temperamento: ['Esperta', 'Carinhosa'],
+    larIdeal: ['Família presente'],
+    responsavel: { nome: 'Lar Temporário do Léo', telefone: '(21) 94444-2222', tipo: 'Lar temporário' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Adotada por uma família responsável.' }
+  },
+  {
+    id: 9, nome: 'Zeus', especie: 'Cão', raca: 'Pastor Alemão',
+    idade: '6 meses', idadeMeses: 6, sexo: 'Macho',
+    localizacao: 'Porto Alegre/RS', cidade: 'Porto Alegre', uf: 'RS', bairro: 'Moinhos de Vento',
+    status: 'Disponível', imagem: 'assets/pet-9.jpg',
+    descricao: 'Zeus é um filhote cheio de energia, inteligente e que aprende comandos com facilidade.',
+    temperamento: ['Energético', 'Inteligente', 'Protetor'],
+    larIdeal: ['Casa com quintal', 'Família ativa'],
+    responsavel: { nome: 'Abrigo Patas do Sul', telefone: '(51) 93333-3333', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: false, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: false, vacinaPrincipal: 'V8', condicaoEspecial: '', observacoes: 'Vacinação em andamento.' }
+  },
+  {
+    id: 10, nome: 'Mike', especie: 'Cão', raca: 'Labrador Retriever',
+    idade: '3 anos', idadeMeses: 36, sexo: 'Macho',
+    localizacao: 'Salvador/BA', cidade: 'Salvador', uf: 'BA', bairro: 'Barra',
+    status: 'Disponível', imagem: 'assets/pet-10.jpg',
+    descricao: 'Mike é dócil, brincalhão e ama água. Perfeito para famílias com crianças.',
+    temperamento: ['Brincalhão', 'Dócil', 'Sociável'],
+    larIdeal: ['Casa com quintal', 'Família com crianças'],
+    responsavel: { nome: 'Ana Beatriz', telefone: '(71) 92222-4444', tipo: 'Pessoa física' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: true, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Sem observações.' }
+  },
+  {
+    id: 11, nome: 'Frida', especie: 'Cão', raca: 'Beagle',
+    idade: '1 ano', idadeMeses: 12, sexo: 'Fêmea',
+    localizacao: 'Curitiba/PR', cidade: 'Curitiba', uf: 'PR', bairro: 'Batel',
+    status: 'Disponível', imagem: 'assets/pet-11.jpg',
+    descricao: 'Frida é curiosa, farejadora e cheia de vida. Adora passeios e novos cheiros.',
+    temperamento: ['Curiosa', 'Ativa', 'Amigável'],
+    larIdeal: ['Casa com quintal', 'Passeios diários'],
+    responsavel: { nome: 'ONG Focinhos Felizes', telefone: '(41) 91111-5555', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: false, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Castração agendada.' }
+  },
+  {
+    id: 12, nome: 'Tobias', especie: 'Cão', raca: 'Bulldog Francês',
+    idade: '8 meses', idadeMeses: 8, sexo: 'Macho',
+    localizacao: 'Florianópolis/SC', cidade: 'Florianópolis', uf: 'SC', bairro: 'Centro',
+    status: 'Disponível', imagem: 'assets/pet-12.jpg',
+    descricao: 'Tobias é um filhote brincalhão e companheiro, ideal para quem vive em apartamento.',
+    temperamento: ['Brincalhão', 'Companheiro'],
+    larIdeal: ['Apartamento', 'Ambiente fresco'],
+    responsavel: { nome: 'Marcos Vinícius', telefone: '(48) 90000-6666', tipo: 'Pessoa física' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: false, vacinaPrincipal: 'V8', condicaoEspecial: 'Raça braquicefálica: evitar calor excessivo', observacoes: 'Acompanhamento respiratório recomendado.' }
+  },
+  {
+    id: 13, nome: 'Pingo', especie: 'Cão', raca: 'Dachshund',
+    idade: '5 anos', idadeMeses: 60, sexo: 'Macho',
+    localizacao: 'Recife/PE', cidade: 'Recife', uf: 'PE', bairro: 'Boa Viagem',
+    status: 'Indisponível', imagem: 'assets/pet-13.jpg',
+    descricao: 'Pingo está em tratamento de coluna e por isso ainda não está disponível para adoção.',
+    temperamento: ['Calmo', 'Carinhoso'],
+    larIdeal: ['Lar sem escadas', 'Tutor paciente'],
+    responsavel: { nome: 'Clínica Amigo Animal', telefone: '(81) 98888-7777', tipo: 'Lar temporário' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: 'Problema de coluna em tratamento', observacoes: 'Reavaliação em 60 dias.' }
+  },
+  {
+    id: 14, nome: 'Maya', especie: 'Cão', raca: 'Border Collie',
+    idade: '2 anos', idadeMeses: 24, sexo: 'Fêmea',
+    localizacao: 'Brasília/DF', cidade: 'Brasília', uf: 'DF', bairro: 'Asa Sul',
+    status: 'Disponível', imagem: 'assets/pet-14.jpg',
+    descricao: 'Maya é extremamente inteligente e ativa. Precisa de estímulo mental e exercícios diários.',
+    temperamento: ['Inteligente', 'Ativa', 'Leal'],
+    larIdeal: ['Casa com quintal', 'Família ativa'],
+    responsavel: { nome: 'ONG Cão Amigo DF', telefone: '(61) 97777-8888', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: true, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Muito enérgica, ideal para quem pratica atividades ao ar livre.' }
+  },
+  {
+    id: 15, nome: 'Bartô', especie: 'Cão', raca: 'Pitbull',
+    idade: '4 anos', idadeMeses: 48, sexo: 'Macho',
+    localizacao: 'Fortaleza/CE', cidade: 'Fortaleza', uf: 'CE', bairro: 'Meireles',
+    status: 'Disponível', imagem: 'assets/pet-15.jpg',
+    descricao: 'Bartô é dócil, leal e adora carinho. Ao contrário do estigma, é um amor de cão.',
+    temperamento: ['Leal', 'Dócil', 'Protetor'],
+    larIdeal: ['Casa com quintal', 'Tutor experiente'],
+    responsavel: { nome: 'Abrigo Recomeço CE', telefone: '(85) 96666-9999', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Sociável com pessoas; socialização com outros cães em andamento.' }
+  },
+  {
+    id: 16, nome: 'Nala', especie: 'Cão', raca: 'Husky Siberiano',
+    idade: '3 anos', idadeMeses: 36, sexo: 'Fêmea',
+    localizacao: 'Goiânia/GO', cidade: 'Goiânia', uf: 'GO', bairro: 'Setor Bueno',
+    status: 'Disponível', imagem: 'assets/pet-16.jpg',
+    descricao: 'Nala é cheia de personalidade, comunicativa e adora correr. Precisa de espaço.',
+    temperamento: ['Ativa', 'Independente', 'Comunicativa'],
+    larIdeal: ['Casa com quintal grande', 'Tutor experiente'],
+    responsavel: { nome: 'Patrícia Gomes', telefone: '(62) 95555-0000', tipo: 'Pessoa física' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: '', observacoes: 'Precisa de ambiente arejado e exercícios.' }
+  },
+  {
+    id: 17, nome: 'Fred', especie: 'Cão', raca: 'Vira-lata',
+    idade: '5 meses', idadeMeses: 5, sexo: 'Macho',
+    localizacao: 'Vitória/ES', cidade: 'Vitória', uf: 'ES', bairro: 'Praia do Canto',
+    status: 'Disponível', imagem: 'assets/pet-17.jpg',
+    descricao: 'Fred é um filhote vira-lata resgatado da rua, saudável, dócil e muito agradecido.',
+    temperamento: ['Dócil', 'Brincalhão', 'Carente'],
+    larIdeal: ['Família paciente', 'Ambiente seguro'],
+    responsavel: { nome: 'ONG SOS Animais ES', telefone: '(27) 94444-1212', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: false, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: false, vacinaPrincipal: '', condicaoEspecial: '', observacoes: 'Primeira dose de vacina aplicada.' }
+  },
+  {
+    id: 18, nome: 'Bela', especie: 'Cão', raca: 'Yorkshire Terrier',
+    idade: '7 anos', idadeMeses: 84, sexo: 'Fêmea',
+    localizacao: 'Uberlândia/MG', cidade: 'Uberlândia', uf: 'MG', bairro: 'Santa Mônica',
+    status: 'Disponível', imagem: 'assets/pet-18.jpg',
+    descricao: 'Bela é uma idosinha tranquila que busca um lar calmo para viver com conforto e amor.',
+    temperamento: ['Calma', 'Companheira'],
+    larIdeal: ['Apartamento', 'Lar tranquilo'],
+    responsavel: { nome: 'Lar Temporário da Cida', telefone: '(34) 93333-2121', tipo: 'Lar temporário' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Negativo', vermifugo: true, v8v10: true, antirrabica: true, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: true, vacinaPrincipal: 'V10', condicaoEspecial: 'Idosa: acompanhamento veterinário regular', observacoes: 'Saudável para a idade.' }
+  },
+  {
+    id: 19, nome: 'Lola', especie: 'Gato', raca: 'Persa',
+    idade: '3 anos', idadeMeses: 36, sexo: 'Fêmea',
+    localizacao: 'Campinas/SP', cidade: 'Campinas', uf: 'SP', bairro: 'Cambuí',
+    status: 'Disponível', imagem: 'assets/pet-19.jpg',
+    descricao: 'Lola é uma gata elegante e tranquila, adora um cafuné e ambientes silenciosos.',
+    temperamento: ['Tranquila', 'Elegante', 'Caseira'],
+    larIdeal: ['Apartamento com tela', 'Ambiente calmo'],
+    responsavel: { nome: 'Gatil Sete Vidas', telefone: '(19) 92222-3434', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: true, felv: false, castrado: true, vacinaPrincipal: 'V4', condicaoEspecial: 'Pelagem longa: escovação frequente', observacoes: 'FeLV negativo.' }
+  },
+  {
+    id: 20, nome: 'Simba', especie: 'Gato', raca: 'Maine Coon',
+    idade: '4 anos', idadeMeses: 48, sexo: 'Macho',
+    localizacao: 'Niterói/RJ', cidade: 'Niterói', uf: 'RJ', bairro: 'Icaraí',
+    status: 'Indisponível', imagem: 'assets/pet-20.jpg',
+    descricao: 'Simba está em observação veterinária e ficará disponível em breve. Gato enorme e dócil.',
+    temperamento: ['Dócil', 'Sociável', 'Gentil'],
+    larIdeal: ['Casa ou apartamento amplo'],
+    responsavel: { nome: 'Gatil Sete Vidas', telefone: '(21) 91111-5656', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: true, v4v5: true, felv: false, castrado: true, vacinaPrincipal: 'V5', condicaoEspecial: 'Tratamento de giárdia em andamento', observacoes: 'Reavaliação em 20 dias.' }
+  },
+  {
+    id: 21, nome: 'Chico', especie: 'Gato', raca: 'Sem raça definida (SRD)',
+    idade: '2 anos', idadeMeses: 24, sexo: 'Macho',
+    localizacao: 'Manaus/AM', cidade: 'Manaus', uf: 'AM', bairro: 'Adrianópolis',
+    status: 'Disponível', imagem: 'assets/pet-21.jpg',
+    descricao: 'Chico é um gato laranja brincalhão e safado no bom sentido. Adora caixas e janelas.',
+    temperamento: ['Brincalhão', 'Curioso', 'Sociável'],
+    larIdeal: ['Apartamento com tela', 'Brinquedos'],
+    responsavel: { nome: 'Rafael Souza', telefone: '(92) 90000-7878', tipo: 'Pessoa física' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: true, felv: false, castrado: true, vacinaPrincipal: 'V4', condicaoEspecial: '', observacoes: 'FeLV negativo.' }
+  },
+  {
+    id: 22, nome: 'Pretinha', especie: 'Gato', raca: 'Sem raça definida (SRD)',
+    idade: '1 ano', idadeMeses: 12, sexo: 'Fêmea',
+    localizacao: 'Belém/PA', cidade: 'Belém', uf: 'PA', bairro: 'Umarizal',
+    status: 'Disponível', imagem: 'assets/pet-22.jpg',
+    descricao: 'Pretinha é uma gata preta carinhosa que quebra superstições com muito amor e ronrons.',
+    temperamento: ['Carinhosa', 'Caseira', 'Dócil'],
+    larIdeal: ['Apartamento com tela', 'Lar amoroso'],
+    responsavel: { nome: 'ONG Gato Feliz PA', telefone: '(91) 98888-1313', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: true, felv: false, castrado: false, vacinaPrincipal: 'V4', condicaoEspecial: '', observacoes: 'Castração agendada.' }
+  },
+  {
+    id: 23, nome: 'Aurora', especie: 'Gato', raca: 'Ragdoll',
+    idade: '2 anos', idadeMeses: 24, sexo: 'Fêmea',
+    localizacao: 'Cuiabá/MT', cidade: 'Cuiabá', uf: 'MT', bairro: 'Centro-Sul',
+    status: 'Disponível', imagem: 'assets/pet-23.jpg',
+    descricao: 'Aurora é uma gata super dócil e relaxada, fica molinha no colo como uma boneca de pano.',
+    temperamento: ['Dócil', 'Calma', 'Apegada'],
+    larIdeal: ['Ambiente calmo', 'Família presente'],
+    responsavel: { nome: 'Gatil Solidário', telefone: '(65) 97777-1414', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: true, felv: false, castrado: true, vacinaPrincipal: 'V5', condicaoEspecial: '', observacoes: 'Pelagem longa: escovação frequente.' }
+  },
+  {
+    id: 24, nome: 'Tom', especie: 'Gato', raca: 'Sphynx',
+    idade: '3 anos', idadeMeses: 36, sexo: 'Macho',
+    localizacao: 'Campo Grande/MS', cidade: 'Campo Grande', uf: 'MS', bairro: 'Centro',
+    status: 'Disponível', imagem: 'assets/pet-24.jpg',
+    descricao: 'Tom é um gato sem pelo, quentinho e extremamente apegado. Precisa de proteção solar e do frio.',
+    temperamento: ['Apegado', 'Sociável', 'Ativo'],
+    larIdeal: ['Ambiente protegido do frio e do sol'],
+    responsavel: { nome: 'Juliana Martins', telefone: '(67) 96666-1515', tipo: 'Pessoa física' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: true, felv: false, castrado: true, vacinaPrincipal: 'V4', condicaoEspecial: 'Sem pelos: cuidados com temperatura e pele', observacoes: 'Banhos periódicos recomendados.' }
+  },
+  {
+    id: 25, nome: 'Mimi', especie: 'Gato', raca: 'Angorá',
+    idade: '6 meses', idadeMeses: 6, sexo: 'Fêmea',
+    localizacao: 'Natal/RN', cidade: 'Natal', uf: 'RN', bairro: 'Ponta Negra',
+    status: 'Disponível', imagem: 'assets/pet-25.jpg',
+    descricao: 'Mimi é uma filhotinha fofa e brincalhona, cheia de energia e pronta para um novo lar.',
+    temperamento: ['Brincalhona', 'Curiosa', 'Carinhosa'],
+    larIdeal: ['Apartamento com tela', 'Brinquedos'],
+    responsavel: { nome: 'ONG Mia Resgate', telefone: '(84) 95555-1616', tipo: 'ONG' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: false, gripeCanina: false, giardia: false, v4v5: false, felv: false, castrado: false, vacinaPrincipal: '', condicaoEspecial: '', observacoes: 'Primeira dose de vacina agendada.' }
+  },
+  {
+    id: 26, nome: 'Bigode', especie: 'Gato', raca: 'Bengal',
+    idade: '2 anos', idadeMeses: 24, sexo: 'Macho',
+    localizacao: 'João Pessoa/PB', cidade: 'João Pessoa', uf: 'PB', bairro: 'Manaíra',
+    status: 'Disponível', imagem: 'assets/pet-26.jpg',
+    descricao: 'Bigode é ágil, atlético e adora escalar. Tem energia de sobra e adora interagir.',
+    temperamento: ['Ativo', 'Esperto', 'Brincalhão'],
+    larIdeal: ['Ambiente com prateleiras e arranhadores'],
+    responsavel: { nome: 'Lar Temporário do Pedro', telefone: '(83) 94444-1717', tipo: 'Lar temporário' },
+    doacao: { tipo: 'Pet individual', quantidade: 1 },
+    fichaMedica: { leishmaniose: 'Não testado', vermifugo: true, v8v10: false, antirrabica: true, gripeCanina: false, giardia: false, v4v5: true, felv: false, castrado: true, vacinaPrincipal: 'V5', condicaoEspecial: '', observacoes: 'Gato muito ativo, precisa de enriquecimento ambiental.' }
   }
 ];
 
@@ -234,6 +474,13 @@ function updateUserStatus() {
   if (nameEl && logged) nameEl.textContent = (state.user.nome || '').split(' ')[0];
   if (btnAuth) btnAuth.hidden = logged;        // "Criar conta" só quando deslogado
   if (userMenu) userMenu.hidden = !logged;     // chip + dropdown só quando logado
+
+  // Botão "Fazer cadastro" do hero vira "Minha conta" para quem já tem conta
+  const heroCad = $id('heroCadastroLink');
+  if (heroCad) {
+    heroCad.href = logged ? 'perfil.html' : 'cadastro.html';
+    heroCad.textContent = logged ? 'Minha conta' : 'Fazer cadastro';
+  }
 }
 
 /* ── CPF / E-MAIL ── */
@@ -285,8 +532,77 @@ function configurarMascaraCPF(ids) {
   });
 }
 
+/* ── TELEFONE ── */
+function limparTelefone(tel) {
+  return String(tel == null ? '' : tel).replace(/\D/g, '');
+}
+
+function aplicarMascaraTelefone(tel) {
+  const n = limparTelefone(tel).slice(0, 11);
+  if (n.length === 0) return '';
+  if (n.length <= 2) return '(' + n;
+  if (n.length <= 6) return '(' + n.slice(0, 2) + ') ' + n.slice(2);
+  if (n.length <= 10) return '(' + n.slice(0, 2) + ') ' + n.slice(2, 6) + '-' + n.slice(6);  // fixo: (XX) XXXX-XXXX
+  return '(' + n.slice(0, 2) + ') ' + n.slice(2, 7) + '-' + n.slice(7);                       // celular: (XX) XXXXX-XXXX
+}
+
+function validarTelefone(tel) {
+  const n = limparTelefone(tel);
+  if (n.length !== 10 && n.length !== 11) return false;       // fixo (10) ou celular (11)
+  if (n.charAt(0) === '0') return false;                      // DDD não começa com 0
+  if (n.length === 11 && n.charAt(2) !== '9') return false;   // celular tem 9 após o DDD
+  return true;
+}
+
+/* Aplica máscara de telefone em tempo real nos inputs informados (por id). */
+function configurarMascaraTelefone(ids) {
+  (ids || []).forEach((id) => {
+    const el = $id(id);
+    if (!el || el._telMasked) return;
+    el._telMasked = true;
+    el.setAttribute('maxlength', '15');
+    el.addEventListener('input', () => {
+      el.value = aplicarMascaraTelefone(el.value);
+      el.classList.remove('input-error');
+    });
+  });
+}
+
 /* Lista de UFs reutilizável (cadastro e edição de perfil). */
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+/* ── COORDENADAS PARA O MAPA (perto de você) ──
+   Capitais por UF (fallback) + cidades específicas do catálogo que não são capitais. */
+const UF_COORDS = {
+  AC:[-9.9747,-67.8100], AL:[-9.6498,-35.7089], AP:[0.0349,-51.0694], AM:[-3.1190,-60.0217],
+  BA:[-12.9714,-38.5014], CE:[-3.7319,-38.5267], DF:[-15.7939,-47.8828], ES:[-20.3155,-40.3128],
+  GO:[-16.6869,-49.2648], MA:[-2.5391,-44.2829], MT:[-15.6014,-56.0979], MS:[-20.4697,-54.6201],
+  MG:[-19.9167,-43.9345], PA:[-1.4558,-48.4902], PB:[-7.1195,-34.8450], PR:[-25.4284,-49.2733],
+  PE:[-8.0476,-34.8770], PI:[-5.0892,-42.8019], RJ:[-22.9068,-43.1729], RN:[-5.7945,-35.2110],
+  RS:[-30.0346,-51.2177], RO:[-8.7619,-63.9039], RR:[2.8235,-60.6758], SC:[-27.5949,-48.5482],
+  SP:[-23.5505,-46.6333], SE:[-10.9472,-37.0731], TO:[-10.1840,-48.3336]
+};
+const CITY_COORDS = {
+  'campinas/sp':[-22.9056,-47.0608],
+  'niteroi/rj':[-22.8832,-43.1034],
+  'contagem/mg':[-19.9320,-44.0539],
+  'uberlandia/mg':[-18.9186,-48.2772]
+};
+
+/* Retorna [lat, lng] de uma cidade/UF, ou null se desconhecida. */
+function cityLatLng(cidade, uf) {
+  const key = normalizarTexto(cidade) + '/' + String(uf || '').toLowerCase();
+  return CITY_COORDS[key] || UF_COORDS[String(uf || '').toUpperCase()] || null;
+}
+/* Coord. do pet com um leve deslocamento determinístico (evita marcadores empilhados). */
+function petLatLng(pet) {
+  const base = cityLatLng(pet.cidade, pet.uf);
+  if (!base) return null;
+  const id = Number(pet.id) || 0;
+  const j1 = ((id * 73) % 100) / 100 - 0.5;
+  const j2 = ((id * 137) % 100) / 100 - 0.5;
+  return [base[0] + j1 * 0.05, base[1] + j2 * 0.05];
+}
 function optionsHtml(values, selected) {
   return values.map(v => `<option${v === selected ? ' selected' : ''}>${escapeHtml(v)}</option>`).join('');
 }
@@ -326,14 +642,17 @@ function validateUserForm() {
 
   const cpfValido = validarCPF(cpf);
   const emailValido = validarEmail(email);
+  const telValido = validarTelefone(telefone);
   if (f.elements['cpf']) f.elements['cpf'].classList.toggle('input-error', !!cpf && !cpfValido);
   if (f.elements['email']) f.elements['email'].classList.toggle('input-error', !!email && !emailValido);
+  if (f.elements['telefone']) f.elements['telefone'].classList.toggle('input-error', !!telefone && !telValido);
 
   if (!nome) errors.push('Informe o nome completo.');
   if (!cpf) errors.push('Informe o CPF.');
   else if (!cpfValido) errors.push('CPF inválido. Verifique os números informados.');
   if (!emailValido) errors.push('Informe um e-mail válido.');
   if (!telefone) errors.push('Informe o telefone / WhatsApp.');
+  else if (!telValido) errors.push('Telefone inválido. Use DDD + número, ex.: (31) 99999-9999.');
   if (!cidade) errors.push('Informe a cidade.');
   if (!uf) errors.push('Selecione a UF.');
   if (!bairro) errors.push('Informe o bairro.');
@@ -374,7 +693,7 @@ function handleUserSubmit(event) {
     cpf: aplicarMascaraCPF(get('cpf')),
     cpfLimpo: limparCPF(get('cpf')),
     email: get('email'),
-    telefone: get('telefone'),
+    telefone: aplicarMascaraTelefone(get('telefone')),
     nascimento: get('nascimento'),
     idade: isNaN(idadeUser) ? null : idadeUser,
     maior21: !isNaN(idadeUser) && idadeUser >= IDADE_MINIMA_ADOCAO,
@@ -457,6 +776,7 @@ function setActiveFilter(filterName) {
 
   renderPetLists();
   renderCurrentPet();
+  renderMap(true);
 }
 
 /* ===========================================================
@@ -854,7 +1174,10 @@ function validatePetForm() {
   const isNinhada = get('tipoCadastro') === 'Filhotes/Ninhada';
 
   if (!get('responsavelNome')) errors.push('Informe o nome do responsável.');
-  if (!get('responsavelTelefone')) errors.push('Informe o telefone do responsável.');
+  const respTel = get('responsavelTelefone');
+  if (f.elements['responsavelTelefone']) f.elements['responsavelTelefone'].classList.toggle('input-error', !!respTel && !validarTelefone(respTel));
+  if (!respTel) errors.push('Informe o telefone do responsável.');
+  else if (!validarTelefone(respTel)) errors.push('Telefone do responsável inválido. Ex.: (31) 99999-9999.');
   if (!get('responsavelTipo')) errors.push('Selecione o tipo de responsável.');
   if (!get('nome')) errors.push(isNinhada ? 'Informe a identificação da ninhada.' : 'Informe o nome do pet.');
   if (!get('especie')) errors.push('Selecione a espécie.');
@@ -928,7 +1251,7 @@ function handlePetSubmit(event) {
     larIdeal: larIdeal,
     responsavel: {
       nome: get('responsavelNome'),
-      telefone: get('responsavelTelefone'),
+      telefone: aplicarMascaraTelefone(get('responsavelTelefone')),
       tipo: get('responsavelTipo')
     },
     doacao: {
@@ -1330,7 +1653,7 @@ function accountEditFormHtml(u) {
       </div>
       <div class="form-group">
         <label for="acc_telefone">Telefone / WhatsApp *</label>
-        <input type="tel" id="acc_telefone" name="telefone" value="${escapeHtml(u.telefone || '')}">
+        <input type="tel" id="acc_telefone" name="telefone" maxlength="15" placeholder="(31) 99999-9999" value="${escapeHtml(u.telefone || '')}">
       </div>
       <div class="form-group">
         <label for="acc_nascimento">Data de nascimento *</label>
@@ -1396,7 +1719,8 @@ function abrirEdicaoDados() {
   if (view) view.hidden = true;
   if (btn) btn.hidden = true;
   if (form) form.hidden = false;
-  configurarMascaraCPF(['acc_cpf']);   // máscara também na edição
+  configurarMascaraCPF(['acc_cpf']);          // máscara de CPF na edição
+  configurarMascaraTelefone(['acc_telefone']); // máscara de telefone na edição
 }
 
 function cancelarEdicaoDados() {
@@ -1435,13 +1759,16 @@ function salvarEdicaoDados(event) {
 
   const cpfValido = validarCPF(cpf);
   const emailValido = validarEmail(email);
+  const telValido = validarTelefone(telefone);
   if (f.elements['cpf']) f.elements['cpf'].classList.toggle('input-error', !cpfValido);
   if (f.elements['email']) f.elements['email'].classList.toggle('input-error', !emailValido);
+  if (f.elements['telefone']) f.elements['telefone'].classList.toggle('input-error', !telValido);
 
   if (!nome) errors.push('Informe o nome completo.');
   if (!cpfValido) errors.push('CPF inválido. Não foi possível salvar as alterações.');
   if (!emailValido) errors.push('Informe um e-mail válido.');
   if (!telefone) errors.push('Informe o telefone / WhatsApp.');
+  else if (!telValido) errors.push('Telefone inválido. Use DDD + número, ex.: (31) 99999-9999.');
   const idade = calcIdade(nascimento);
   if (!nascimento || isNaN(idade)) errors.push('Informe a data de nascimento.');
   if (!cidade) errors.push('Informe a cidade.');
@@ -1472,7 +1799,7 @@ function salvarEdicaoDados(event) {
     cpf: aplicarMascaraCPF(cpf),
     cpfLimpo: limparCPF(cpf),
     email: email,
-    telefone: telefone,
+    telefone: aplicarMascaraTelefone(telefone),
     nascimento: nascimento,
     idade: isNaN(idade) ? null : idade,
     maior21: !isNaN(idade) && idade >= IDADE_MINIMA_ADOCAO,
@@ -1614,6 +1941,96 @@ function renderProfile() {
 const renderizarDadosUsuario = renderProfile;
 
 /* ===========================================================
+   12b. MAPA INTERATIVO (perto de você) — Leaflet + OpenStreetMap
+=========================================================== */
+let _map = null;
+let _mapMarkers = null;
+let _userMarker = null;
+
+function mapPopupHtml(pet) {
+  return `<div class="map-popup">
+    <img class="map-popup-img" src="${escapeHtml(pet.imagem)}" alt="${escapeHtml(pet.nome)}" onerror="this.src='assets/luna-hero.png'">
+    <div class="map-popup-body">
+      <strong class="map-popup-name">${escapeHtml(pet.nome)}</strong>
+      <span class="map-popup-sub">${escapeHtml(pet.especie)} · ${escapeHtml(pet.raca)}</span>
+      <span class="map-popup-sub">📍 ${escapeHtml(pet.localizacao)}</span>
+      <span class="pet-card-badge ${statusBadgeClass(pet.status)}">${escapeHtml(pet.status)}</span>
+      <button class="map-popup-btn" type="button" data-id="${pet.id}">Ver detalhes</button>
+    </div>
+  </div>`;
+}
+
+function initMap() {
+  const el = $id('petsMap');
+  if (!el || typeof L === 'undefined' || _map) return;
+
+  _map = L.map('petsMap', { scrollWheelZoom: false }).setView([-15.78, -47.93], 4); // Brasil
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 18
+  }).addTo(_map);
+  _mapMarkers = L.layerGroup().addTo(_map);
+
+  renderMap(true);
+}
+
+function renderMap(fit) {
+  if (!_map || !_mapMarkers) return;
+  _mapMarkers.clearLayers();
+  _userMarker = null;
+
+  const pets = filterPets();
+  const bounds = [];
+
+  pets.forEach(pet => {
+    const ll = petLatLng(pet);
+    if (!ll) return;
+    bounds.push(ll);
+    const marker = L.marker(ll).addTo(_mapMarkers);
+    marker.bindPopup(mapPopupHtml(pet), { minWidth: 200 });
+    marker.on('popupopen', () => {
+      const btn = document.querySelector('.map-popup-btn[data-id="' + pet.id + '"]');
+      if (btn) btn.addEventListener('click', () => { _map.closePopup(); showPetDetails(pet.id); });
+    });
+  });
+
+  const countEl = $id('mapCount');
+  if (countEl) countEl.textContent = bounds.length + ' pet(s) no mapa';
+
+  if (!fit) return;
+
+  // "Perto de você": centraliza na cidade do usuário cadastrado
+  if (state.activeFilter === 'perto' && isUserRegistered()) {
+    const me = cityLatLng(state.user.cidade, state.user.uf);
+    if (me) { _map.setView(me, 9); addUserMarker(me); return; }
+  }
+  if (bounds.length === 1) _map.setView(bounds[0], 9);
+  else if (bounds.length > 1) _map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
+}
+
+function addUserMarker(latlng) {
+  if (!_map) return;
+  _userMarker = L.circleMarker(latlng, {
+    radius: 11, color: '#D9623D', weight: 2, fillColor: '#F4845F', fillOpacity: 0.55
+  }).addTo(_mapMarkers);
+  _userMarker.bindPopup('📍 Você está aqui: ' + escapeHtml(state.user.cidade) + '/' + escapeHtml(state.user.uf));
+}
+
+function locateMeOnMap() {
+  if (!_map) { showToast('O mapa ainda está carregando.', 'info'); return; }
+  if (!isUserRegistered()) {
+    showToast('Cadastre sua cidade para encontrar pets perto de você.', 'info');
+    return;
+  }
+  const me = cityLatLng(state.user.cidade, state.user.uf);
+  if (!me) { showToast('Não encontramos a localização da sua cidade no mapa.', 'warning'); return; }
+  _map.setView(me, 10);
+  if (!_userMarker) addUserMarker(me);
+  _userMarker.openPopup();
+  showToast(`Mostrando pets perto de ${state.user.cidade}/${state.user.uf}. 📍`, 'success');
+}
+
+/* ===========================================================
    13. INICIALIZAÇÃO / EVENTOS
 =========================================================== */
 function initApp() {
@@ -1627,6 +2044,26 @@ function initApp() {
   renderProfile();
 
   bindEvents();
+  initMap();   // mapa interativo (só age se a página tiver #petsMap)
+
+  // Página de cadastro: quem JÁ tem conta é levado para "Minha conta".
+  if ($id('userForm') && isUserRegistered()) {
+    const fp = document.querySelector('.form-page');
+    if (fp) {
+      fp.innerHTML = `
+        <div class="form-inner">
+          <div class="profile-guard">
+            <div class="explore-empty-emoji">🐾</div>
+            <h3>Você já tem uma conta</h3>
+            <p>Estamos te levando para a sua área <strong>Minha conta</strong>...</p>
+            <a class="btn-primary" href="perfil.html">Ir para Minha conta</a>
+          </div>
+        </div>`;
+    }
+    showToast('Você já tem cadastro. Indo para Minha conta.', 'info');
+    setTimeout(() => { window.location.href = 'perfil.html'; }, 1100);
+    return;
+  }
 
   // Página de cadastrar pet exige login: avisa o visitante ao abrir.
   if ($id('petForm') && !isUserRegistered()) {
@@ -1659,6 +2096,7 @@ function bindEvents() {
       state.searchTerm = searchInput.value;
       renderPetLists();
       renderCurrentPet();
+      renderMap(false);
     });
   }
   if (searchForm) {
@@ -1667,8 +2105,13 @@ function bindEvents() {
       state.searchTerm = searchInput ? searchInput.value : '';
       renderPetLists();
       renderCurrentPet();
+      renderMap(true);
     });
   }
+
+  /* Botão "Centralizar perto de mim" do mapa */
+  const btnLocate = $id('btnLocateMe');
+  if (btnLocate) btnLocate.addEventListener('click', locateMeOnMap);
 
   /* Filtros */
   document.querySelectorAll('.filter-chip').forEach(chip => {
@@ -1686,7 +2129,8 @@ function bindEvents() {
   /* Formulário de usuário */
   const userForm = $id('userForm');
   if (userForm) userForm.addEventListener('submit', handleUserSubmit);
-  configurarMascaraCPF(['u_cpf']);   // máscara de CPF no cadastro
+  configurarMascaraCPF(['u_cpf']);                              // máscara de CPF no cadastro
+  configurarMascaraTelefone(['u_telefone', 'p_telefone']);     // máscara de telefone (cadastro e cadastro de pet)
 
   /* Formulário de pet */
   const petForm = $id('petForm');
