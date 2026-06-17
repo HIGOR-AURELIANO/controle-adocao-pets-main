@@ -562,10 +562,12 @@ a { color: var(--verde-claro); }
   position: relative;
   height: 300px;
   background: var(--bege);
+  overflow: hidden;
 }
-.explore-card-img img { width: 100%; height: 100%; object-fit: contain; }
+.explore-card-img img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; }
 .explore-card-status {
   position: absolute;
+  z-index: 2;
   top: 14px; left: 14px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1347,10 +1349,12 @@ a { color: var(--verde-claro); }
   position: relative;
   height: 170px;
   background: var(--bege);
+  overflow: hidden;
 }
-.pet-card-img img { width: 100%; height: 100%; object-fit: contain; }
+.pet-card-img img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; }
 .pet-card-badge {
   position: absolute;
+  z-index: 2;
   top: 12px; left: 12px;
   font-size: 0.68rem;
   font-weight: 700;
@@ -1710,9 +1714,26 @@ a { color: var(--verde-claro); }
 }
 .modal-close:hover { transform: scale(1.1); }
 
-.modal-img { position: relative; height: 280px; background: var(--bege); }
-.modal-img img { width: 100%; height: 100%; object-fit: contain; }
+.modal-img { position: relative; height: 280px; background: var(--bege); overflow: hidden; }
+.modal-img img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; }
 .modal-img .explore-card-status { top: 16px; left: 16px; }
+
+/* Preenche o espaço vazio com uma cópia desfocada da própria imagem,
+   mantendo a foto completa (sem cortar) em primeiro plano. */
+.explore-card-img::before,
+.pet-card-img::before,
+.modal-img::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: inherit;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(22px);
+  transform: scale(1.18);
+}
 
 .modal-body { padding: 26px 30px 30px; }
 .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 6px; }
