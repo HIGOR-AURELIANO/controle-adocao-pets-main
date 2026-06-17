@@ -72,7 +72,7 @@ const $id = (id) => document.getElementById(id);
 async function api(action, data, method) {
   method = method || (data ? 'POST' : 'GET');
   const url = 'api.php?action=' + action;
-  const opts = { method, credentials: 'same-origin' };
+  const opts = { method, credentials: 'same-origin', cache: 'no-store' };
 
   if (data instanceof FormData) {
     opts.body = data;
