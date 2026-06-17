@@ -1,0 +1,20 @@
+controle-adocao-pets/
+├── database/
+│   ├── database.sqlite       <-- Onde o arquivo do banco vai ficar
+│   └── schema.sql            <-- Script SQL de criação das tabelas (ótimo para o professor ver)
+├── src/
+│   ├── config/
+│   │   └── connection.php    <-- Conexão PDO com o SQLite
+│   ├── api/
+│   │   ├── cadastrar_pet.php
+│   │   ├── cadastrar_adotante.php
+│   │   ├── adotar.php
+│   │   └── listar_pets.php   <-- Scripts PHP que retornam JSON
+│   ├── js/
+│   │   └── main.js           <-- Suas funções Fetch e manipulação do DOM
+│   └── css/
+│       └── style.css         <-- Seus estilos CSS3
+├── index.html                <-- Sua página/painel principal
+├── .gitignore
+├── LICENSE
+└── README.md

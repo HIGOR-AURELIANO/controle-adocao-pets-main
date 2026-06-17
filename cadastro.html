@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro — meu4patas</title>
+  <meta name="description" content="Cadastre-se no meu4patas para adotar ou doar pets com responsabilidade.">
+  <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=logo-final-1">
+</head>
+<body>
+
+  <!-- ───────────── TOP BAR ───────────── -->
+  <header class="topbar">
+    <a class="nav-logo" href="index.html" aria-label="meu4patas - início">
+      <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas" height="38">
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav-menu" id="navMenu">
+      <ul class="nav-links">
+        <li><a href="index.html#inicio">Início</a></li>
+        <li><a href="index.html#explorar">Explorar pets</a></li>
+        <li><a href="index.html#como-funciona">Como funciona</a></li>
+        <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
+        <li><a href="index.html#requisitos">Requisitos</a></li>
+      </ul>
+      <div class="nav-user" id="navUser">
+        <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
+        <div class="user-menu" id="userMenu" hidden>
+          <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="user-avatar" aria-hidden="true">🐾</span>
+            <span class="user-chip-name" id="navUserName">Conta</span>
+            <span class="user-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" hidden>
+            <a href="perfil.html">👤 Minha conta</a>
+            <button type="button" id="btnLogoutMenu">↩ Sair</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ───────────── CABEÇALHO DA PÁGINA ───────────── -->
+  <section class="page-head">
+    <div class="page-head-inner">
+      <a class="back-link" href="index.html">← Voltar ao início</a>
+      <p class="section-eyebrow">Primeiro passo</p>
+      <h1 class="page-title">Cadastro para adoção ou doação</h1>
+      <p class="page-lead">Você precisa estar cadastrado para demonstrar interesse em um pet. Leva menos de um minuto e seus dados ficam apenas neste navegador.</p>
+    </div>
+  </section>
+
+  <!-- ───────────── CADASTRO DE USUÁRIO ───────────── -->
+  <main class="form-page">
+    <div class="form-inner">
+      <form id="userForm" class="card-form" novalidate>
+        <fieldset class="form-fieldset">
+          <legend>Quero...</legend>
+          <div class="radio-row">
+            <label class="radio-pill"><input type="radio" name="tipoCadastro" value="adotar" checked> Adotar um pet</label>
+            <label class="radio-pill"><input type="radio" name="tipoCadastro" value="doar"> Doar / cadastrar um pet</label>
+            <label class="radio-pill"><input type="radio" name="tipoCadastro" value="ambos"> Adotar e também doar</label>
+          </div>
+        </fieldset>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="u_nome">Nome completo *</label>
+            <input type="text" id="u_nome" name="nome" autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label for="u_cpf">CPF *</label>
+            <input type="text" id="u_cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
+          </div>
+          <div class="form-group">
+            <label for="u_email">E-mail *</label>
+            <input type="email" id="u_email" name="email" autocomplete="email" placeholder="voce@email.com">
+          </div>
+          <div class="form-group">
+            <label for="u_telefone">Telefone / WhatsApp *</label>
+            <input type="tel" id="u_telefone" name="telefone" placeholder="(31) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label for="u_nascimento">Data de nascimento *</label>
+            <input type="date" id="u_nascimento" name="nascimento">
+          </div>
+          <div class="form-group">
+            <label for="u_cidade">Cidade *</label>
+            <input type="text" id="u_cidade" name="cidade" placeholder="Belo Horizonte">
+          </div>
+          <div class="form-group">
+            <label for="u_uf">UF *</label>
+            <select id="u_uf" name="uf">
+              <option value="">--</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+              <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+              <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+              <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+              <option>SE</option><option>TO</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="u_bairro">Bairro *</label>
+            <input type="text" id="u_bairro" name="bairro" placeholder="Centro">
+          </div>
+          <div class="form-group">
+            <label for="u_moradia">Tipo de moradia *</label>
+            <select id="u_moradia" name="moradia">
+              <option value="">Selecione</option>
+              <option>Casa com quintal</option>
+              <option>Casa sem quintal</option>
+              <option>Apartamento com tela de proteção</option>
+              <option>Apartamento sem tela</option>
+              <option>Sítio / chácara</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="u_outrosAnimais">Possui outros animais? *</label>
+            <select id="u_outrosAnimais" name="outrosAnimais">
+              <option value="">Selecione</option>
+              <option>Não</option>
+              <option>Sim, cães</option>
+              <option>Sim, gatos</option>
+              <option>Sim, cães e gatos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="u_jaAdotou">Já adotou antes? *</label>
+            <select id="u_jaAdotou" name="jaAdotou">
+              <option value="">Selecione</option>
+              <option>Sim</option>
+              <option>Não</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="u_senha">Senha * <small>(mín. 6 caracteres)</small></label>
+            <input type="password" id="u_senha" name="senha" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="u_confirmaSenha">Confirmar senha *</label>
+            <input type="password" id="u_confirmaSenha" name="confirmaSenha" autocomplete="new-password">
+          </div>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" id="u_termos" name="termos">
+          <span>Li e aceito os <a href="index.html#requisitos">termos de adoção responsável</a>. Estou ciente de que demonstrar interesse em adoção exige ter <strong>21 anos ou mais</strong>.</span>
+        </label>
+
+        <div class="form-error" id="userFormError" role="alert"></div>
+        <button type="submit" class="btn-primary btn-full">Concluir cadastro 🐾</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- ───────────── FOOTER ───────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas">
+        </div>
+        <p class="footer-tagline">Conectamos animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.</p>
+        <div class="footer-social">
+          <a class="social-btn" href="#" aria-label="Instagram" title="Instagram">📷</a>
+          <a class="social-btn" href="#" aria-label="WhatsApp" title="WhatsApp">💬</a>
+          <a class="social-btn" href="mailto:contato@meu4patas.org" aria-label="E-mail" title="E-mail">✉️</a>
+        </div>
+      </div>
+
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Navegar</h4>
+        <ul>
+          <li><a href="index.html#inicio">Início</a></li>
+          <li><a href="index.html#explorar">Explorar pets</a></li>
+          <li><a href="index.html#como-funciona">Como funciona</a></li>
+          <li><a href="index.html#requisitos">Requisitos</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Participe</h4>
+        <ul>
+          <li><a href="cadastro.html">Criar conta</a></li>
+          <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
+          <li><a href="perfil.html">Minha conta</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer-col footer-cta">
+        <h4 class="footer-col-title">Faça a diferença</h4>
+        <p>Tem um pet para doação? Ajude-o a encontrar um novo lar.</p>
+        <a class="footer-cta-btn" href="cadastrar-pet.html">Cadastrar pet 🐾</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 meu4patas — Todo pet merece um lar de verdade.</span>
+      <span class="footer-made">Feito com 💛 pelo Grupo 6 · <strong>Adote, não compre</strong></span>
+    </div>
+  </footer>
+
+  <!-- ───────────── TOAST ───────────── -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/script.js?v=logo-final-1"></script>
+</body>
+</html>
