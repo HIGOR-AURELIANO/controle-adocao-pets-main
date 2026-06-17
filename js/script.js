@@ -107,7 +107,12 @@ function normalizePet(p) {
     bairro: p.bairro || '',
     localizacao: `${p.cidade || ''}/${p.uf || ''}`,
     status: p.status || 'Disponível',
-    imagem: p.imagem || 'assets/luna-hero.png',
+    imagem: (function() {
+      const img = p.imagem || '';
+      if (!img) return '/assets/luna-hero.png';
+      if (img.startsWith('http') || img.startsWith('/')) return img;
+      return '/' + img; // relativo→absoluto: uploads/xxx → /uploads/xxx
+    })(),
     descricao: p.descricao || '',
     temperamento: Array.isArray(p.temperamento_arr) ? p.temperamento_arr : splitArr(p.temperamento),
     larIdeal: Array.isArray(p.lar_ideal_arr) ? p.lar_ideal_arr : splitArr(p.lar_ideal),
@@ -1207,8 +1212,9 @@ async function handlePetSubmit(event) {
     return;
   }
 
-  // Recarrega lista de pets
+  // Recarrega lista de pets e dados do usuário (meus pets + interessados)
   await loadPetsFromAPI();
+  if (state.user) await loadUserDataFromAPI();
 
   f.reset();
   state.pendingImage    = '';
@@ -1549,6 +1555,7 @@ function ownedCardHtml(pet) {
             <strong>${escapeHtml(r.nome || 'Interessado(a)')}</strong>
             <span class="interest-status ${interestStatusClass(st)}">${escapeHtml(st)}</span>
           </div>
+          ${r.email    ? `<a class="interest-contact" href="mailto:${escapeHtml(r.email)}">✉️ ${escapeHtml(r.email)}</a>` : ''}
           ${r.telefone ? `<a class="interest-contact" href="tel:${escapeHtml(r.telefone.replace(/\D/g,''))}">📞 ${escapeHtml(r.telefone)}</a>` : ''}
           ${interestInfoHtml(r)}
           ${r.mensagem ? `<p class="interest-msg">💬 ${escapeHtml(r.mensagem)}</p>` : ''}
@@ -1868,7 +1875,10 @@ function renderProfile() {
     </section>
 
     <section class="profile-block" id="meusPets">
-      <h3 class="profile-block-title">Pets que cadastrei para doação</h3>
+      <div class="profile-section-head">
+        <h3 class="profile-block-title">Pets que cadastrei para doação</h3>
+        <button class="btn-refresh-pets" type="button" id="btnRefreshMeusPets" title="Atualizar interessados">🔄 Atualizar</button>
+      </div>
       <div class="pets-grid">
         ${meusPets.length ? meusPets.map(ownedCardHtml).join('')
           : `<div class="grid-empty">Você ainda não cadastrou pets. <a href="cadastrar-pet.html">Cadastrar um pet</a></div>`}
@@ -1887,6 +1897,16 @@ function renderProfile() {
   if (btnCancel) btnCancel.addEventListener('click', cancelarEdicaoDados);
   const editForm  = $id('accountEditForm');
   if (editForm) editForm.addEventListener('submit', salvarEdicaoDados);
+
+  const btnRefresh = $id('btnRefreshMeusPets');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', async () => {
+      btnRefresh.disabled = true;
+      btnRefresh.textContent = '⏳ Atualizando...';
+      await loadUserDataFromAPI();
+      renderProfile();
+    });
+  }
 }
 const renderizarDadosUsuario = renderProfile;
 
@@ -2012,6 +2032,26 @@ async function initApp() {
   bindEvents();
   initMap();
   await initPetEditMode();
+
+  // Auto-refresh: atualiza pets quando a aba volta ao foco
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden) {
+      await loadPetsFromAPI();
+      renderPetLists();
+      renderCurrentPet();
+      renderCounters();
+    }
+  });
+
+  // Auto-refresh periódico (90s) para que novos pets apareçam sem recarregar
+  setInterval(async () => {
+    if (!document.hidden) {
+      await loadPetsFromAPI();
+      renderPetLists();
+      renderCurrentPet();
+      renderCounters();
+    }
+  }, 90000);
 
   // Página de cadastro: quem JÁ tem conta é levado para "Minha conta".
   if ($id('userForm') && isUserRegistered()) {

@@ -1079,6 +1079,31 @@ a { color: var(--verde-claro); }
 .owned-interested li a:hover { text-decoration: underline; }
 .owned-interested li.none { color: var(--cinza); font-style: italic; }
 
+/* ── Cabeçalho de seção com botão Atualizar ── */
+.profile-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.profile-section-head .profile-block-title { margin-bottom: 0; }
+.btn-refresh-pets {
+  background: transparent;
+  border: 1.5px solid var(--verde-medio);
+  color: var(--verde-medio);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+.btn-refresh-pets:hover { background: var(--verde-medio); color: #fff; }
+.btn-refresh-pets:disabled { opacity: 0.55; cursor: not-allowed; }
+
 /* ── Andamento do processo de adoção (interessados nos meus pets) ── */
 .interest-item {
   background: var(--branco);
