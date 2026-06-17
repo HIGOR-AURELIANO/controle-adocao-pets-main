@@ -7,7 +7,7 @@
   <meta name="description" content="Cadastre um pet ou uma ninhada para adoção no meu4patas.">
   <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=fix-v16">
+  <link rel="stylesheet" href="css/style.css?v=fix-v17">
 </head>
 <body>
 
@@ -109,12 +109,20 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="p_idade">Idade aproximada *</label>
-            <input type="text" id="p_idade" name="idade" placeholder="Ex.: 2 anos">
-          </div>
-          <div class="form-group">
-            <label for="p_idadeMeses">Idade em meses *</label>
-            <input type="number" id="p_idadeMeses" name="idadeMeses" min="0" placeholder="Ex.: 24">
+            <label>Idade *</label>
+            <div class="idade-selector">
+              <div class="idade-spinner-group">
+                <span class="idade-sub-label">Anos</span>
+                <input type="number" id="p_idadeAnos" min="0" max="25" value="0">
+              </div>
+              <div class="idade-spinner-group">
+                <span class="idade-sub-label">Meses</span>
+                <input type="number" id="p_idadeMesesSpinner" min="0" max="11" value="0">
+              </div>
+              <div class="idade-resultado" id="idadeResultado">Menos de 1 mês</div>
+            </div>
+            <input type="hidden" id="p_idade" name="idade" value="Menos de 1 mês">
+            <input type="hidden" id="p_idadeMeses" name="idadeMeses" value="0">
           </div>
           <div class="form-group">
             <label for="p_sexo">Sexo *</label>
@@ -278,6 +286,6 @@
   <!-- ───────────── TOAST ───────────── -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="js/script.js?v=fix-v16"></script>
+  <script src="js/script.js?v=fix-v17"></script>
 </body>
 </html>
