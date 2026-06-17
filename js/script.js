@@ -1003,6 +1003,31 @@ function toggleNinhadaFields() {
   if (n) n.placeholder = isNinhada ? 'Ex.: Ninhada da Mel' : 'Ex.: Bolinha';
 }
 
+function atualizarIdadeSpinner() {
+  const anosEl  = $id('p_idadeAnos');
+  const mesesEl = $id('p_idadeMesesSpinner');
+  if (!anosEl && !mesesEl) return;
+  const anos  = Math.max(0, parseInt((anosEl  && anosEl.value)  || '0', 10) || 0);
+  const meses = Math.max(0, parseInt((mesesEl && mesesEl.value) || '0', 10) || 0);
+  const total = anos * 12 + meses;
+  let texto;
+  if (anos > 0 && meses > 0) {
+    texto = `${anos} ${anos === 1 ? 'ano' : 'anos'} e ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  } else if (anos > 0) {
+    texto = `${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+  } else if (meses > 0) {
+    texto = `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  } else {
+    texto = 'Menos de 1 mês';
+  }
+  const res = $id('idadeResultado');
+  if (res) res.textContent = `${texto} · ${total} ${total === 1 ? 'mês' : 'meses'}`;
+  const hi = $id('p_idade');
+  const hm = $id('p_idadeMeses');
+  if (hi) hi.value = texto;
+  if (hm) hm.value = String(total);
+}
+
 function handleImagePreview(event) {
   const file = event.target.files && event.target.files[0];
   const box = $id('imagePreview');
@@ -1046,8 +1071,12 @@ function prefillPetForm(pet) {
   setSel('especie', pet.especie);
   updateBreedOptions(pet.especie);
   setSel('raca', pet.raca);
-  set('idade', pet.idade);
-  set('idadeMeses', pet.idadeMeses);
+  const _mT    = Number(pet.idadeMeses) || 0;
+  const _aEl   = $id('p_idadeAnos');
+  const _mEl   = $id('p_idadeMesesSpinner');
+  if (_aEl)  _aEl.value  = Math.floor(_mT / 12);
+  if (_mEl)  _mEl.value  = _mT % 12;
+  atualizarIdadeSpinner();
   setSel('sexo', pet.sexo);
   set('cidade', pet.cidade);
   setSel('uf', pet.uf);
@@ -2156,6 +2185,12 @@ function bindEvents() {
 
   const imagem = $id('p_imagem');
   if (imagem) imagem.addEventListener('change', handleImagePreview);
+
+  const idadeAnos  = $id('p_idadeAnos');
+  const idadeMesesSpin = $id('p_idadeMesesSpinner');
+  if (idadeAnos)      idadeAnos.addEventListener('input', atualizarIdadeSpinner);
+  if (idadeMesesSpin) idadeMesesSpin.addEventListener('input', atualizarIdadeSpinner);
+  atualizarIdadeSpinner();
 
   /* Delegação: cards da listagem */
   const listSection = $id('listagem');
