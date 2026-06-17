@@ -889,9 +889,11 @@ function petCardHtml(pet) {
         <div class="pet-card-tags">${tags}</div>
         <div class="pet-card-actions">
           <button class="btn-detail" type="button" data-id="${pet.id}">Ver detalhes</button>
-          ${pet.status === 'Disponível'
-            ? `<button class="btn-interest" type="button" data-interest="${pet.id}">💛 Tenho interesse</button>`
-            : ''}
+          ${state.user && pet.cadastradoPorUserId === state.user.id
+            ? `<button class="btn-ver-interessados" type="button" data-interessados="${pet.id}">👥 Ver interessados (${state.interessados.filter(r=>r.petId===pet.id).length})</button>`
+            : pet.status === 'Disponível'
+              ? `<button class="btn-interest" type="button" data-interest="${pet.id}">💛 Tenho interesse</button>`
+              : ''}
         </div>
       </div>
     </div>`;
@@ -1338,7 +1340,11 @@ function showPetDetails(petId) {
         </div>
       </div>
 
-      ${pet.status === 'Disponível' ? `
+      ${state.user && pet.cadastradoPorUserId === state.user.id
+        ? `<div class="modal-actions">
+            <button class="btn-ver-interessados btn-full" type="button" data-interessados="${pet.id}">👥 Ver interessados (${state.interessados.filter(r=>r.petId===pet.id).length})</button>
+          </div>`
+        : pet.status === 'Disponível' ? `
       <div class="modal-note">⚠️ Enviar interesse não garante a adoção. A continuidade do processo depende da avaliação da ONG ou responsável pelo animal.</div>
       <div class="modal-actions">
         <button class="btn-primary btn-full" type="button" id="modalInterestBtn" data-id="${pet.id}">Tenho interesse 💛</button>
@@ -1501,6 +1507,59 @@ async function updateInterestStatus(interesseId, status) {
   renderPetLists();
 }
 
+function showInteressados(petId) {
+  const pet = getPet(petId);
+  if (!pet) return;
+  const overlay  = $id('interessadosOverlay');
+  const content  = $id('interessadosContent');
+  const nameEl   = $id('interessadosNomePet');
+  if (!overlay || !content) return;
+
+  if (nameEl) nameEl.textContent = pet.nome;
+
+  const lista      = state.interessados.filter(r => r.petId === petId);
+  const petAdotado = pet.status === 'Adotado';
+
+  content.innerHTML = lista.length
+    ? lista.map(r => {
+        const st = r.status || 'Interesse enviado';
+        const opts = INTEREST_STATUSES
+          .filter(s => s !== 'Adoção concluída' || st === 'Adoção concluída')
+          .map(s => `<option value="${escapeHtml(s)}"${s === st ? ' selected' : ''}>${escapeHtml(s)}</option>`)
+          .join('');
+        const concluido = st === 'Adoção concluída';
+        const confirmBtn = (!petAdotado && st !== 'Recusado')
+          ? `<button class="btn-confirm-donation" type="button" data-confirm-donation="${r.interesseId}">🤝 Confirmar doação</button>`
+          : (concluido ? '<span class="interest-adopted">🏡 Adotou este pet</span>' : '');
+        return `
+          <div class="interessado-card${concluido ? ' is-chosen' : ''}">
+            <div class="interessado-head">
+              <strong class="interessado-nome">${escapeHtml(r.nome || 'Interessado(a)')}</strong>
+              <span class="interest-status ${interestStatusClass(st)}">${escapeHtml(st)}</span>
+            </div>
+            ${r.email    ? `<a class="interest-contact" href="mailto:${escapeHtml(r.email)}">✉️ ${escapeHtml(r.email)}</a>` : ''}
+            ${r.telefone ? `<a class="interest-contact" href="tel:${escapeHtml(r.telefone.replace(/\D/g,''))}">📞 ${escapeHtml(r.telefone)}</a>` : ''}
+            ${interestInfoHtml(r)}
+            ${r.mensagem ? `<p class="interest-msg">💬 ${escapeHtml(r.mensagem)}</p>` : ''}
+            <label class="interest-process">
+              <span>Andamento da adoção:</span>
+              <select class="interest-status-select" data-interesse-id="${r.interesseId}"${petAdotado ? ' disabled' : ''}>${opts}</select>
+            </label>
+            ${confirmBtn}
+          </div>`;
+      }).join('')
+    : `<p class="interessados-empty">Ninguém demonstrou interesse ainda.</p>`;
+
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeInteressados() {
+  const overlay = $id('interessadosOverlay');
+  if (overlay) overlay.hidden = true;
+  document.body.style.overflow = '';
+}
+
 function confirmDonation(interesseId) {
   const item = state.interessados.find(i => i.interesseId === interesseId);
   if (!item) return;
@@ -1522,6 +1581,8 @@ function confirmDonation(interesseId) {
       renderProfile();
       renderCounters();
       renderPetLists();
+      const _io = $id('interessadosOverlay');
+      if (_io && !_io.hidden) showInteressados(item.petId);
     }
   });
 }
@@ -2250,7 +2311,26 @@ function bindEvents() {
   const overlay    = $id('modalOverlay');
   if (modalClose) modalClose.addEventListener('click', closePetDetails);
   if (overlay)    overlay.addEventListener('click', e => { if (e.target === overlay) closePetDetails(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeConfirm(); closePetDetails(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeConfirm(); closePetDetails(); closeInteressados(); } });
+
+  const intOverlay = $id('interessadosOverlay');
+  if (intOverlay) {
+    const intClose = $id('interessadosClose');
+    if (intClose) intClose.addEventListener('click', closeInteressados);
+    intOverlay.addEventListener('click', e => {
+      if (e.target === intOverlay) { closeInteressados(); return; }
+      const conf = e.target.closest('[data-confirm-donation]');
+      if (conf) confirmDonation(Number(conf.dataset.confirmDonation));
+    });
+    intOverlay.addEventListener('change', e => {
+      const sel = e.target.closest('.interest-status-select');
+      if (sel) updateInterestStatus(Number(sel.dataset.interesseId), sel.value);
+    });
+  }
+  document.addEventListener('click', e => {
+    const intBtn = e.target.closest('[data-interessados]');
+    if (intBtn) showInteressados(Number(intBtn.dataset.interessados));
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
