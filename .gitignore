@@ -9,3 +9,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# SQLite — arquivos auxiliares do WAL (transitórios; o banco.db é versionado)
+*.db-wal
+*.db-shm
