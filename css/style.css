@@ -563,7 +563,7 @@ a { color: var(--verde-claro); }
   background: var(--bege);
   overflow: hidden;
 }
-.explore-card-img img { display: block; width: 100%; height: auto; }
+.explore-card-img img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; }
 .explore-card-status {
   position: absolute;
   z-index: 2;
@@ -1349,7 +1349,7 @@ a { color: var(--verde-claro); }
   background: var(--bege);
   overflow: hidden;
 }
-.pet-card-img img { display: block; width: 100%; height: auto; }
+.pet-card-img img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; }
 .pet-card-badge {
   position: absolute;
   z-index: 2;
@@ -1713,7 +1713,7 @@ a { color: var(--verde-claro); }
 .modal-close:hover { transform: scale(1.1); }
 
 .modal-img { position: relative; background: var(--bege); overflow: hidden; }
-.modal-img img { display: block; width: 100%; height: auto; }
+.modal-img img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; }
 .modal-img .explore-card-status { top: 16px; left: 16px; }
 
 .modal-body { padding: 26px 30px 30px; }
@@ -1972,4 +1972,30 @@ a { color: var(--verde-claro); }
   .hero-stats { gap: 22px; }
   .modal-body { padding: 22px 18px 26px; }
   .card-form { padding: 22px 18px; }
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVO — FOTOS E CARDS DOS PETS
+───────────────────────────────────────── */
+/* Evita rolagem horizontal sem quebrar o cabeçalho fixo (clip não cria
+   contexto de rolagem, ao contrário de hidden). */
+body { overflow-x: clip; }
+
+@media (max-width: 768px) {
+  .pets-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .modal-name { font-size: 1.6rem; }
+  .modal-body { padding: 24px 22px 26px; }
+}
+
+@media (max-width: 480px) {
+  /* Uma coluna para o animal aparecer grande e bem enquadrado, sem cortes */
+  .pets-grid { grid-template-columns: 1fr; gap: 16px; }
+  .pet-card-body { padding: 14px; }
+  .pet-card-name { font-size: 1.15rem; }
+
+  .explore-card-body { padding: 18px 18px 22px; }
+  .explore-card-name { font-size: 1.5rem; }
+
+  .modal-overlay { padding: 12px; }
+  .modal-name { font-size: 1.5rem; }
 }
