@@ -5,15 +5,18 @@ description: How pet photos must fill card space without cropping; the approache
 
 # Pet image display rule
 
-Pet image assets are **square** (~700×700, hero 478×498). Display them with:
-`width:100%; aspect-ratio:1/1; object-fit:cover; object-position:center;` on
-`.pet-card-img img`, `.explore-card-img img`, `.modal-img img`. Container keeps
-`background: var(--bege)` for any non-square upload.
+Pet image assets are **square** (~700×700, hero 478×498). Put the `aspect-ratio:1/1`
+on the **container** (`.pet-card-img`, `.explore-card-img`, `.modal-img`) and make the
+`<img>` fill it: `width:100%; height:100%; object-fit:cover; object-position:center;`.
+Container keeps `background: var(--bege)` for any non-square upload.
 
-**Why:** the original cropping came from boxes whose aspect didn't match the
-square photos (fixed heights like 170/300/280px on ~square images crop heavily).
-A 1:1 box matching the 1:1 assets fills completely with zero crop and gives
-uniform, responsive card heights.
+**Why:** a 1:1 box matching the 1:1 assets fills completely with zero crop and gives
+uniform, responsive card heights (original crop came from non-square fixed heights like
+170/300/280px). CRITICAL: `aspect-ratio` set **directly on the `<img>`** triggers an
+**iOS Safari paint bug** — the box gets sized (square + beige bg) but the bitmap doesn't
+render for cards below the fold, so "alguns animais ficaram sem fotos" on real iPhones.
+Chromium/Playwright renders it fine, so e2e tests DO NOT catch this — only real Safari.
+Moving aspect-ratio to the container + `height:100%` on the img paints reliably everywhere.
 
 **Rejected approaches (do not reintroduce):**
 - `object-fit: contain` with non-square boxes → leaves empty/letterbox space (user rejected).

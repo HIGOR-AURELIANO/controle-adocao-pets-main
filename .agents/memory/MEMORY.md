@@ -1,3 +1,3 @@
 - [Donation flow invariant](donation-flow-invariant.md) — pet "Adotado"/"Adoção concluída" only via confirmar_doacao, never the status dropdown (it skips adotante + refusing rivals).
-- [Pet image display](pet-image-display.md) — square assets fill via aspect-ratio:1/1 + object-fit:cover; no contain/blur/max-height caps (each re-introduces crop or empty space).
+- [Pet image display](pet-image-display.md) — aspect-ratio:1/1 on the CONTAINER (not the img) + img height:100% object-fit:cover; img-level aspect-ratio = iOS Safari blank-photo bug Chromium tests miss.
 - [Stale-cache reports](stale-cache-reports.md) — unreproducible "photos gone"/"update not showing" = browser cache; bump ?v=fix-vN in all HTML, don't touch layout.
