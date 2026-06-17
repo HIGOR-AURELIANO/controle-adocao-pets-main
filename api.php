@@ -160,68 +160,284 @@ function initDB(): void {
         )
     ");
 
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pets_demo_lookup ON pets (nome_pet, imagem)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_interesses_pet ON interesses (pet_id)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_recusas_pet ON recusas (pet_id)");
+
     /* Seed de dados de teste */
     seedData($pdo);
 }
 
 function seedData(PDO $pdo): void {
-    $count = (int) $pdo->query("SELECT COUNT(*) FROM usuarios")->fetchColumn();
-    if ($count > 0) return;
+    $pets = demoPets();
+    if (!needsDemoSeed($pdo, $pets)) return;
 
-    /* Usuários */
+    $pdo->beginTransaction();
+    try {
+        $usuarios = seedDemoUsers($pdo);
+        $adotantes = seedDemoAdotantes($pdo, $usuarios);
+        seedDemoPets($pdo, $usuarios, $adotantes, $pets);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+function needsDemoSeed(PDO $pdo, array $pets): bool {
+    $usuariosOk = (int) $pdo->query("
+        SELECT COUNT(*)
+        FROM usuarios
+        WHERE email IN ('admin@meu4patas.local','ana@meu4patas.local','doador@meu4patas.local')
+          AND data_nascimento LIKE '____-__-__'
+          AND maior21 = 1
+    ")->fetchColumn() >= 3;
+
+    $adotantesOk = (int) $pdo->query("
+        SELECT COUNT(*)
+        FROM adotantes
+        WHERE nome_completo IN ('Ana Silva','Arthur Santos')
+    ")->fetchColumn() >= 2;
+
+    if (!$usuariosOk || !$adotantesOk) return true;
+
+    $findPet = $pdo->prepare("SELECT COUNT(*) FROM pets WHERE nome_pet=? AND imagem=?");
+    foreach ($pets as $pet) {
+        $findPet->execute([$pet['nome_pet'], $pet['imagem']]);
+        if ((int) $findPet->fetchColumn() === 0) return true;
+    }
+
+    return false;
+}
+
+function seedDemoUsers(PDO $pdo): array {
     $users = [
-        ['admin@meu4patas.local',  'Admin meu4patas',  '111.111.111-11', '11111111111', '1990-01-15', 'adotar',  'Casa',       'nao', 'sim', 'Belo Horizonte', 'MG', 'Centro'],
-        ['ana@meu4patas.local',    'Ana Silva',         '222.222.222-22', '22222222222', '1995-05-20', 'adotar',  'Apartamento','nao', 'nao', 'Belo Horizonte', 'MG', 'Savassi'],
-        ['doador@meu4patas.local', 'Carlos Doador',     '333.333.333-33', '33333333333', '1988-08-10', 'doar',    'Casa',       'sim', 'sim', 'Contagem',       'MG', 'Eldorado'],
+        'admin' => [
+            'email' => 'admin@meu4patas.local',
+            'nome_completo' => 'Admin meu4patas',
+            'cpf' => '111.111.111-11',
+            'cpf_limpo' => '11111111111',
+            'telefone' => '(31)99999-0000',
+            'data_nascimento' => '1990-01-15',
+            'cidade' => 'Belo Horizonte',
+            'uf' => 'MG',
+            'bairro' => 'Centro',
+            'tipo_cadastro' => 'adotar',
+            'tipo_moradia' => 'Casa',
+            'possui_outros_animais' => 'nao',
+            'ja_adotou_antes' => 'sim',
+        ],
+        'ana' => [
+            'email' => 'ana@meu4patas.local',
+            'nome_completo' => 'Ana Silva',
+            'cpf' => '222.222.222-22',
+            'cpf_limpo' => '22222222222',
+            'telefone' => '(31)99999-1111',
+            'data_nascimento' => '1995-05-20',
+            'cidade' => 'Belo Horizonte',
+            'uf' => 'MG',
+            'bairro' => 'Savassi',
+            'tipo_cadastro' => 'adotar',
+            'tipo_moradia' => 'Apartamento',
+            'possui_outros_animais' => 'nao',
+            'ja_adotou_antes' => 'nao',
+        ],
+        'doador' => [
+            'email' => 'doador@meu4patas.local',
+            'nome_completo' => 'Carlos Doador',
+            'cpf' => '333.333.333-33',
+            'cpf_limpo' => '33333333333',
+            'telefone' => '(31)99999-3333',
+            'data_nascimento' => '1988-08-10',
+            'cidade' => 'Contagem',
+            'uf' => 'MG',
+            'bairro' => 'Eldorado',
+            'tipo_cadastro' => 'doar',
+            'tipo_moradia' => 'Casa',
+            'possui_outros_animais' => 'sim',
+            'ja_adotou_antes' => 'sim',
+        ],
     ];
-    $senha = password_hash('123456', PASSWORD_DEFAULT);
-    $stmtU = $pdo->prepare("
-        INSERT OR IGNORE INTO usuarios
+
+    $find = $pdo->prepare("SELECT id FROM usuarios WHERE email=? OR cpf_limpo=? LIMIT 1");
+    $insert = $pdo->prepare("
+        INSERT INTO usuarios
             (nome_completo, cpf, cpf_limpo, email, telefone, data_nascimento, idade, maior21,
              cidade, uf, bairro, tipo_cadastro, tipo_moradia, possui_outros_animais, ja_adotou_antes,
              senha_hash, aceita_termos)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
     ");
-    foreach ($users as $u) {
-        $idade  = calcularIdade($u[5]);
-        $stmtU->execute([$u[1],$u[2],$u[3],$u[0],'(31)99999-0000',$u[5],$idade,($idade>=21?1:0),
-                         $u[9],$u[10],$u[11],$u[6],$u[7],$u[8],$u[9],$senha]);
+    $update = $pdo->prepare("
+        UPDATE usuarios
+        SET nome_completo=?, cpf=?, cpf_limpo=?, email=?, telefone=?, data_nascimento=?, idade=?,
+            maior21=?, cidade=?, uf=?, bairro=?, tipo_cadastro=?, tipo_moradia=?,
+            possui_outros_animais=?, ja_adotou_antes=?, senha_hash=?, aceita_termos=1,
+            atualizado_em=CURRENT_TIMESTAMP
+        WHERE id=?
+    ");
+
+    $ids = [];
+    $senha = password_hash('123456', PASSWORD_DEFAULT);
+    foreach ($users as $key => $u) {
+        $idade = calcularIdade($u['data_nascimento']);
+        $maior21 = $idade >= 21 ? 1 : 0;
+        $values = [
+            $u['nome_completo'], $u['cpf'], $u['cpf_limpo'], $u['email'], $u['telefone'],
+            $u['data_nascimento'], $idade, $maior21, $u['cidade'], $u['uf'], $u['bairro'],
+            $u['tipo_cadastro'], $u['tipo_moradia'], $u['possui_outros_animais'],
+            $u['ja_adotou_antes'], $senha,
+        ];
+
+        $find->execute([$u['email'], $u['cpf_limpo']]);
+        $id = (int) $find->fetchColumn();
+        if ($id > 0) {
+            $update->execute([...$values, $id]);
+        } else {
+            $insert->execute($values);
+            $id = (int) $pdo->lastInsertId();
+        }
+        $ids[$key] = $id;
     }
 
-    /* Adotantes */
-    $adminId = (int) $pdo->query("SELECT id FROM usuarios WHERE email='admin@meu4patas.local'")->fetchColumn();
-    $anaId   = (int) $pdo->query("SELECT id FROM usuarios WHERE email='ana@meu4patas.local'")->fetchColumn();
+    return $ids;
+}
 
-    $stmtA = $pdo->prepare("
-        INSERT OR IGNORE INTO adotantes (usuario_id, nome_completo, telefone, cidade, uf, bairro, tipo_moradia)
-        VALUES (?,?,?,?,?,?,?)
-    ");
-    $stmtA->execute([$anaId,   'Ana Silva',     '(31)99999-1111', 'Belo Horizonte','MG','Savassi','Apartamento']);
-    $stmtA->execute([$adminId, 'Arthur Santos', '(31)99999-2222', 'Belo Horizonte','MG','Centro', 'Casa']);
-
-    $anaAdotanteId = (int) $pdo->query("SELECT id FROM adotantes WHERE usuario_id=$anaId")->fetchColumn();
-
-    /* Pets */
-    $doadorId = (int) $pdo->query("SELECT id FROM usuarios WHERE email='doador@meu4patas.local'")->fetchColumn();
-    $pets = [
-        ['Luna',    'Cão',  'Sem raça definida (SRD)', '2 anos',      24, 'Fêmea', 'Belo Horizonte','MG','Santa Efigênia','Disponível',   'assets/luna-hero.png', $doadorId, null,         'ONG meu4patas',   '(31)99999-9999','ONG','Negativo',1,1,1,0,0,0,0,1,'','Sem observações.',           'Dócil,Brincalhona,Sociável',       'Casa com quintal,Família paciente'],
-        ['Thor',    'Cão',  'Pastor Alemão',           '1 ano',       12, 'Macho', 'Belo Horizonte','MG','Savassi',       'Disponível',   'assets/pet-thor.jpg',  $doadorId, null,         'Abrigo Recomeço', '(31)98888-7777','ONG','Negativo',1,1,1,1,0,0,0,0,'','Castração agendada.',        'Energético,Leal,Carinhoso',        'Espaço amplo,Família ativa'],
-        ['Mel',     'Gato', 'Sem raça definida (SRD)', '8 meses',      8, 'Fêmea', 'Belo Horizonte','MG','Funcionários',  'Disponível',   'assets/pet-mel.jpg',   $doadorId, null,         'Gatil Solidário', '(31)96666-5555','ONG','Não testado',1,0,1,0,0,1,1,0,'','FeLV negativo.',             'Dócil,Curiosa,Tranquila',          'Apartamento com tela,Ambiente calmo'],
-        ['Nina',    'Gato', 'Siamês',                  '1 ano e 6 meses',18,'Fêmea','São Paulo',    'SP','Pinheiros',     'Indisponível', 'assets/pet-nina.jpg',  $doadorId, null,         'ONG Gatil SP',    '(11)95555-4444','ONG','Não testado',1,0,1,0,0,1,1,1,'','Em tratamento.',             'Independente,Afetuosa',            'Lar com janelas teladas'],
-        ['Bolinha', 'Cão',  'Sem raça definida (SRD)', '3 anos',      36, 'Macho', 'Belo Horizonte','MG','Pampulha',      'Adotado',      'assets/luna-hero.png', $doadorId, $anaAdotanteId,'ONG meu4patas', '(31)99999-9999','ONG','Negativo',1,1,1,0,0,0,0,1,'','Adotado com sucesso.',       'Dócil,Sociável',                   'Família responsável'],
+function seedDemoAdotantes(PDO $pdo, array $usuarios): array {
+    $rows = [
+        'ana' => [
+            'usuario_id' => $usuarios['ana'] ?? null,
+            'nome_completo' => 'Ana Silva',
+            'telefone' => '(31)99999-1111',
+            'cidade' => 'Belo Horizonte',
+            'uf' => 'MG',
+            'bairro' => 'Savassi',
+            'tipo_moradia' => 'Apartamento',
+        ],
+        'admin' => [
+            'usuario_id' => $usuarios['admin'] ?? null,
+            'nome_completo' => 'Arthur Santos',
+            'telefone' => '(31)99999-2222',
+            'cidade' => 'Belo Horizonte',
+            'uf' => 'MG',
+            'bairro' => 'Centro',
+            'tipo_moradia' => 'Casa',
+        ],
     ];
 
-    $stmtP = $pdo->prepare("
-        INSERT OR IGNORE INTO pets
-            (nome_pet,especie,raca,idade_aproximada,idade_meses,sexo,cidade,uf,bairro,
-             status,imagem,usuario_doador_id,adotante_id,responsavel_nome,responsavel_telefone,
-             responsavel_tipo,leishmaniose,vermifugo,v8_v10,antirrabica,gripe_canina,giardia,
-             v4_v5,felv,castrado,condicao_especial,observacoes_veterinarias,temperamento,lar_ideal)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    $find = $pdo->prepare("SELECT id FROM adotantes WHERE usuario_id=? OR (nome_completo=? AND telefone=?) LIMIT 1");
+    $insert = $pdo->prepare("
+        INSERT INTO adotantes (usuario_id, nome_completo, telefone, cidade, uf, bairro, tipo_moradia)
+        VALUES (?,?,?,?,?,?,?)
     ");
-    foreach ($pets as $p) {
-        $stmtP->execute($p);
+    $update = $pdo->prepare("
+        UPDATE adotantes
+        SET usuario_id=?, nome_completo=?, telefone=?, cidade=?, uf=?, bairro=?,
+            tipo_moradia=?, atualizado_em=CURRENT_TIMESTAMP
+        WHERE id=?
+    ");
+
+    $ids = [];
+    foreach ($rows as $key => $r) {
+        $find->execute([$r['usuario_id'], $r['nome_completo'], $r['telefone']]);
+        $id = (int) $find->fetchColumn();
+        $values = [
+            $r['usuario_id'], $r['nome_completo'], $r['telefone'], $r['cidade'],
+            $r['uf'], $r['bairro'], $r['tipo_moradia'],
+        ];
+        if ($id > 0) {
+            $update->execute([...$values, $id]);
+        } else {
+            $insert->execute($values);
+            $id = (int) $pdo->lastInsertId();
+        }
+        $ids[$key] = $id;
     }
+
+    return $ids;
+}
+
+function seedDemoPets(PDO $pdo, array $usuarios, array $adotantes, array $pets): void {
+    $doadorId = $usuarios['doador'] ?? null;
+
+    $find = $pdo->prepare("SELECT id FROM pets WHERE nome_pet=? AND imagem=? LIMIT 1");
+    $insert = $pdo->prepare("
+        INSERT INTO pets
+            (nome_pet, especie, raca, idade_aproximada, idade_meses, sexo, cidade, uf, bairro,
+             status, descricao, temperamento, lar_ideal, imagem, responsavel_nome,
+             responsavel_telefone, responsavel_tipo, tipo_cadastro, quantidade, leishmaniose,
+             vermifugo, v8_v10, antirrabica, gripe_canina, giardia, v4_v5, felv, castrado,
+             condicao_especial, observacoes_veterinarias, usuario_doador_id, adotante_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ");
+    $update = $pdo->prepare("
+        UPDATE pets
+        SET nome_pet=?, especie=?, raca=?, idade_aproximada=?, idade_meses=?, sexo=?,
+            cidade=?, uf=?, bairro=?, status=?, descricao=?, temperamento=?, lar_ideal=?,
+            imagem=?, responsavel_nome=?, responsavel_telefone=?, responsavel_tipo=?,
+            tipo_cadastro=?, quantidade=?, leishmaniose=?, vermifugo=?, v8_v10=?,
+            antirrabica=?, gripe_canina=?, giardia=?, v4_v5=?, felv=?, castrado=?,
+            condicao_especial=?, observacoes_veterinarias=?, usuario_doador_id=?,
+            adotante_id=?, atualizado_em=CURRENT_TIMESTAMP
+        WHERE id=?
+    ");
+
+    foreach ($pets as $p) {
+        $adotanteId = null;
+        if (!empty($p['adotante_key'])) {
+            $adotanteId = $adotantes[$p['adotante_key']] ?? null;
+        }
+
+        $values = [
+            $p['nome_pet'], $p['especie'], $p['raca'], $p['idade_aproximada'],
+            $p['idade_meses'], $p['sexo'], $p['cidade'], $p['uf'], $p['bairro'],
+            $p['status'], $p['descricao'], $p['temperamento'], $p['lar_ideal'],
+            $p['imagem'], $p['responsavel_nome'], $p['responsavel_telefone'],
+            $p['responsavel_tipo'], $p['tipo_cadastro'], $p['quantidade'],
+            $p['leishmaniose'], $p['vermifugo'], $p['v8_v10'], $p['antirrabica'],
+            $p['gripe_canina'], $p['giardia'], $p['v4_v5'], $p['felv'], $p['castrado'],
+            $p['condicao_especial'], $p['observacoes_veterinarias'], $doadorId,
+            $adotanteId,
+        ];
+
+        $find->execute([$p['nome_pet'], $p['imagem']]);
+        $id = (int) $find->fetchColumn();
+        if ($id > 0) {
+            $update->execute([...$values, $id]);
+        } else {
+            $insert->execute($values);
+        }
+    }
+}
+
+function demoPets(): array {
+    return [
+        ['nome_pet'=>'Luna','especie'=>'Cão','raca'=>'Sem raça definida (SRD)','idade_aproximada'=>'2 anos','idade_meses'=>24,'sexo'=>'Fêmea','cidade'=>'Belo Horizonte','uf'=>'MG','bairro'=>'Santa Efigênia','status'=>'Disponível','descricao'=>'Luna é dócil, brincalhona e procura uma família responsável que goste de passeios ao ar livre.','temperamento'=>'Dócil,Brincalhona,Sociável','lar_ideal'=>'Casa com quintal,Família paciente,Passeios diários','imagem'=>'assets/luna-hero.png','responsavel_nome'=>'ONG meu4patas','responsavel_telefone'=>'(31) 99999-9999','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Sem observações graves.'],
+        ['nome_pet'=>'Thor','especie'=>'Cão','raca'=>'Golden Retriever','idade_aproximada'=>'1 ano','idade_meses'=>12,'sexo'=>'Macho','cidade'=>'Belo Horizonte','uf'=>'MG','bairro'=>'Savassi','status'=>'Disponível','descricao'=>'Thor é energético, leal e adora crianças. Foi resgatado ainda filhote e hoje é pura alegria.','temperamento'=>'Energético,Leal,Carinhoso','lar_ideal'=>'Espaço amplo,Família ativa,Outros pets bem-vindos','imagem'=>'assets/pet-thor.jpg','responsavel_nome'=>'Abrigo Recomeço','responsavel_telefone'=>'(31) 98888-7777','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>1,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Castração agendada.'],
+        ['nome_pet'=>'Rex','especie'=>'Cão','raca'=>'Vira-lata','idade_aproximada'=>'3 anos','idade_meses'=>36,'sexo'=>'Macho','cidade'=>'Contagem','uf'=>'MG','bairro'=>'Eldorado','status'=>'Indisponível','descricao'=>'Rex está em tratamento e por isso ainda não está disponível, mas em breve poderá ser adotado.','temperamento'=>'Calmo,Companheiro','lar_ideal'=>'Lar tranquilo,Tutor paciente','imagem'=>'assets/pet-rex.jpg','responsavel_nome'=>'Lar Temporário da Ana','responsavel_telefone'=>'(31) 97777-6666','responsavel_tipo'=>'Lar temporário','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Em tratamento','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>1,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'Em tratamento veterinário','observacoes_veterinarias'=>'Reavaliação em 30 dias.'],
+        ['nome_pet'=>'Mel','especie'=>'Gato','raca'=>'Siamês','idade_aproximada'=>'8 meses','idade_meses'=>8,'sexo'=>'Fêmea','cidade'=>'Belo Horizonte','uf'=>'MG','bairro'=>'Funcionários','status'=>'Disponível','descricao'=>'Mel é uma gatinha dócil e curiosa, ideal para apartamento. Adora um colo no fim do dia.','temperamento'=>'Dócil,Curiosa,Tranquila','lar_ideal'=>'Apartamento com tela,Ambiente calmo','imagem'=>'assets/pet-mel.jpg','responsavel_nome'=>'Gatil Solidário','responsavel_telefone'=>'(31) 96666-5555','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>1,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'FeLV negativo. Castração após 1 ano.'],
+        ['nome_pet'=>'Nina','especie'=>'Gato','raca'=>'Sem raça definida (SRD)','idade_aproximada'=>'1 ano e 6 meses','idade_meses'=>18,'sexo'=>'Fêmea','cidade'=>'São Paulo','uf'=>'SP','bairro'=>'Pinheiros','status'=>'Adotado','descricao'=>'Nina já encontrou seu lar para sempre! Fica aqui como exemplo de uma adoção bem-sucedida.','temperamento'=>'Independente,Afetuosa','lar_ideal'=>'Lar com janelas teladas','imagem'=>'assets/pet-nina.jpg','responsavel_nome'=>'ONG Gatil SP','responsavel_telefone'=>'(11) 95555-4444','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>1,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Adotada por uma família responsável.','adotante_key'=>'ana'],
+        ['nome_pet'=>'Ninhada da Mel','especie'=>'Gato','raca'=>'Sem raça definida (SRD)','idade_aproximada'=>'2 meses','idade_meses'=>2,'sexo'=>'Variado (ninhada)','cidade'=>'Belo Horizonte','uf'=>'MG','bairro'=>'Funcionários','status'=>'Disponível','descricao'=>'Quatro filhotes saudáveis procuram lares amorosos. Entrega após vermifugação e desmame completo.','temperamento'=>'Brincalhões,Sociáveis','lar_ideal'=>'Famílias responsáveis,Tutores com tempo','imagem'=>'assets/pet-ninhada.jpg','responsavel_nome'=>'Gatil Solidário','responsavel_telefone'=>'(31) 96666-5555','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Filhotes/Ninhada','quantidade'=>4,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>0,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Primeira dose de vacina agendada.'],
+        ['nome_pet'=>'Bidu','especie'=>'Cão','raca'=>'Shih Tzu','idade_aproximada'=>'4 anos','idade_meses'=>48,'sexo'=>'Macho','cidade'=>'São Paulo','uf'=>'SP','bairro'=>'Vila Mariana','status'=>'Disponível','descricao'=>'Bidu é um companheiro tranquilo, adora colo e se adapta muito bem a apartamento.','temperamento'=>'Calmo,Companheiro,Dócil','lar_ideal'=>'Apartamento,Ambiente calmo','imagem'=>'assets/pet-7.jpg','responsavel_nome'=>'ONG Amor de Patas','responsavel_telefone'=>'(11) 95555-1111','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>1,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Pet saudável e sociável.'],
+        ['nome_pet'=>'Amora','especie'=>'Cão','raca'=>'Poodle','idade_aproximada'=>'2 anos','idade_meses'=>24,'sexo'=>'Fêmea','cidade'=>'Rio de Janeiro','uf'=>'RJ','bairro'=>'Tijuca','status'=>'Adotado','descricao'=>'Amora já encontrou um novo lar! Exemplo de adoção feliz através do meu4patas.','temperamento'=>'Esperta,Carinhosa','lar_ideal'=>'Família presente','imagem'=>'assets/pet-8.jpg','responsavel_nome'=>'Lar Temporário do Léo','responsavel_telefone'=>'(21) 94444-2222','responsavel_tipo'=>'Lar temporário','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Adotada por uma família responsável.','adotante_key'=>'admin'],
+        ['nome_pet'=>'Zeus','especie'=>'Cão','raca'=>'Pastor Alemão','idade_aproximada'=>'6 meses','idade_meses'=>6,'sexo'=>'Macho','cidade'=>'Porto Alegre','uf'=>'RS','bairro'=>'Moinhos de Vento','status'=>'Disponível','descricao'=>'Zeus é um filhote cheio de energia, inteligente e que aprende comandos com facilidade.','temperamento'=>'Energético,Inteligente,Protetor','lar_ideal'=>'Casa com quintal,Família ativa','imagem'=>'assets/pet-9.jpg','responsavel_nome'=>'Abrigo Patas do Sul','responsavel_telefone'=>'(51) 93333-3333','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>0,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Vacinação em andamento.'],
+        ['nome_pet'=>'Mike','especie'=>'Cão','raca'=>'Labrador Retriever','idade_aproximada'=>'3 anos','idade_meses'=>36,'sexo'=>'Macho','cidade'=>'Salvador','uf'=>'BA','bairro'=>'Barra','status'=>'Disponível','descricao'=>'Mike é dócil, brincalhão e ama água. Perfeito para famílias com crianças.','temperamento'=>'Brincalhão,Dócil,Sociável','lar_ideal'=>'Casa com quintal,Família com crianças','imagem'=>'assets/pet-10.jpg','responsavel_nome'=>'Ana Beatriz','responsavel_telefone'=>'(71) 92222-4444','responsavel_tipo'=>'Pessoa física','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>1,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Sem observações.'],
+        ['nome_pet'=>'Frida','especie'=>'Cão','raca'=>'Beagle','idade_aproximada'=>'1 ano','idade_meses'=>12,'sexo'=>'Fêmea','cidade'=>'Curitiba','uf'=>'PR','bairro'=>'Batel','status'=>'Disponível','descricao'=>'Frida é curiosa, farejadora e cheia de vida. Adora passeios e novos cheiros.','temperamento'=>'Curiosa,Ativa,Amigável','lar_ideal'=>'Casa com quintal,Passeios diários','imagem'=>'assets/pet-11.jpg','responsavel_nome'=>'ONG Focinhos Felizes','responsavel_telefone'=>'(41) 91111-5555','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Castração agendada.'],
+        ['nome_pet'=>'Tobias','especie'=>'Cão','raca'=>'Bulldog Francês','idade_aproximada'=>'8 meses','idade_meses'=>8,'sexo'=>'Macho','cidade'=>'Florianópolis','uf'=>'SC','bairro'=>'Centro','status'=>'Disponível','descricao'=>'Tobias é um filhote brincalhão e companheiro, ideal para quem vive em apartamento.','temperamento'=>'Brincalhão,Companheiro','lar_ideal'=>'Apartamento,Ambiente fresco','imagem'=>'assets/pet-12.jpg','responsavel_nome'=>'Marcos Vinícius','responsavel_telefone'=>'(48) 90000-6666','responsavel_tipo'=>'Pessoa física','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'Raça braquicefálica: evitar calor excessivo','observacoes_veterinarias'=>'Acompanhamento respiratório recomendado.'],
+        ['nome_pet'=>'Pingo','especie'=>'Cão','raca'=>'Dachshund','idade_aproximada'=>'5 anos','idade_meses'=>60,'sexo'=>'Macho','cidade'=>'Recife','uf'=>'PE','bairro'=>'Boa Viagem','status'=>'Indisponível','descricao'=>'Pingo está em tratamento de coluna e por isso ainda não está disponível para adoção.','temperamento'=>'Calmo,Carinhoso','lar_ideal'=>'Lar sem escadas,Tutor paciente','imagem'=>'assets/pet-13.jpg','responsavel_nome'=>'Clínica Amigo Animal','responsavel_telefone'=>'(81) 98888-7777','responsavel_tipo'=>'Lar temporário','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'Problema de coluna em tratamento','observacoes_veterinarias'=>'Reavaliação em 60 dias.'],
+        ['nome_pet'=>'Maya','especie'=>'Cão','raca'=>'Border Collie','idade_aproximada'=>'2 anos','idade_meses'=>24,'sexo'=>'Fêmea','cidade'=>'Brasília','uf'=>'DF','bairro'=>'Asa Sul','status'=>'Disponível','descricao'=>'Maya é extremamente inteligente e ativa. Precisa de estímulo mental e exercícios diários.','temperamento'=>'Inteligente,Ativa,Leal','lar_ideal'=>'Casa com quintal,Família ativa','imagem'=>'assets/pet-14.jpg','responsavel_nome'=>'ONG Cão Amigo DF','responsavel_telefone'=>'(61) 97777-8888','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>1,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Muito enérgica, ideal para quem pratica atividades ao ar livre.'],
+        ['nome_pet'=>'Bartô','especie'=>'Cão','raca'=>'Pitbull','idade_aproximada'=>'4 anos','idade_meses'=>48,'sexo'=>'Macho','cidade'=>'Fortaleza','uf'=>'CE','bairro'=>'Meireles','status'=>'Disponível','descricao'=>'Bartô é dócil, leal e adora carinho. Ao contrário do estigma, é um amor de cão.','temperamento'=>'Leal,Dócil,Protetor','lar_ideal'=>'Casa com quintal,Tutor experiente','imagem'=>'assets/pet-15.jpg','responsavel_nome'=>'Abrigo Recomeço CE','responsavel_telefone'=>'(85) 96666-9999','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Sociável com pessoas; socialização com outros cães em andamento.'],
+        ['nome_pet'=>'Nala','especie'=>'Cão','raca'=>'Husky Siberiano','idade_aproximada'=>'3 anos','idade_meses'=>36,'sexo'=>'Fêmea','cidade'=>'Goiânia','uf'=>'GO','bairro'=>'Setor Bueno','status'=>'Disponível','descricao'=>'Nala é cheia de personalidade, comunicativa e adora correr. Precisa de espaço.','temperamento'=>'Ativa,Independente,Comunicativa','lar_ideal'=>'Casa com quintal grande,Tutor experiente','imagem'=>'assets/pet-16.jpg','responsavel_nome'=>'Patrícia Gomes','responsavel_telefone'=>'(62) 95555-0000','responsavel_tipo'=>'Pessoa física','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Precisa de ambiente arejado e exercícios.'],
+        ['nome_pet'=>'Fred','especie'=>'Cão','raca'=>'Vira-lata','idade_aproximada'=>'5 meses','idade_meses'=>5,'sexo'=>'Macho','cidade'=>'Vitória','uf'=>'ES','bairro'=>'Praia do Canto','status'=>'Disponível','descricao'=>'Fred é um filhote vira-lata resgatado da rua, saudável, dócil e muito agradecido.','temperamento'=>'Dócil,Brincalhão,Carente','lar_ideal'=>'Família paciente,Ambiente seguro','imagem'=>'assets/pet-17.jpg','responsavel_nome'=>'ONG SOS Animais ES','responsavel_telefone'=>'(27) 94444-1212','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>0,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Primeira dose de vacina aplicada.'],
+        ['nome_pet'=>'Bela','especie'=>'Cão','raca'=>'Yorkshire Terrier','idade_aproximada'=>'7 anos','idade_meses'=>84,'sexo'=>'Fêmea','cidade'=>'Uberlândia','uf'=>'MG','bairro'=>'Santa Mônica','status'=>'Disponível','descricao'=>'Bela é uma idosinha tranquila que busca um lar calmo para viver com conforto e amor.','temperamento'=>'Calma,Companheira','lar_ideal'=>'Apartamento,Lar tranquilo','imagem'=>'assets/pet-18.jpg','responsavel_nome'=>'Lar Temporário da Cida','responsavel_telefone'=>'(34) 93333-2121','responsavel_tipo'=>'Lar temporário','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Negativo','vermifugo'=>1,'v8_v10'=>1,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>1,'condicao_especial'=>'Idosa: acompanhamento veterinário regular','observacoes_veterinarias'=>'Saudável para a idade.'],
+        ['nome_pet'=>'Lola','especie'=>'Gato','raca'=>'Persa','idade_aproximada'=>'3 anos','idade_meses'=>36,'sexo'=>'Fêmea','cidade'=>'Campinas','uf'=>'SP','bairro'=>'Cambuí','status'=>'Disponível','descricao'=>'Lola é uma gata elegante e tranquila, adora um cafuné e ambientes silenciosos.','temperamento'=>'Tranquila,Elegante,Caseira','lar_ideal'=>'Apartamento com tela,Ambiente calmo','imagem'=>'assets/pet-19.jpg','responsavel_nome'=>'Gatil Sete Vidas','responsavel_telefone'=>'(19) 92222-3434','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>0,'castrado'=>1,'condicao_especial'=>'Pelagem longa: escovação frequente','observacoes_veterinarias'=>'FeLV negativo.'],
+        ['nome_pet'=>'Simba','especie'=>'Gato','raca'=>'Maine Coon','idade_aproximada'=>'4 anos','idade_meses'=>48,'sexo'=>'Macho','cidade'=>'Niterói','uf'=>'RJ','bairro'=>'Icaraí','status'=>'Indisponível','descricao'=>'Simba está em observação veterinária e ficará disponível em breve. Gato enorme e dócil.','temperamento'=>'Dócil,Sociável,Gentil','lar_ideal'=>'Casa ou apartamento amplo','imagem'=>'assets/pet-20.jpg','responsavel_nome'=>'Gatil Sete Vidas','responsavel_telefone'=>'(21) 91111-5656','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>1,'v4_v5'=>1,'felv'=>0,'castrado'=>1,'condicao_especial'=>'Tratamento de giárdia em andamento','observacoes_veterinarias'=>'Reavaliação em 20 dias.'],
+        ['nome_pet'=>'Chico','especie'=>'Gato','raca'=>'Sem raça definida (SRD)','idade_aproximada'=>'2 anos','idade_meses'=>24,'sexo'=>'Macho','cidade'=>'Manaus','uf'=>'AM','bairro'=>'Adrianópolis','status'=>'Disponível','descricao'=>'Chico é um gato laranja brincalhão e safado no bom sentido. Adora caixas e janelas.','temperamento'=>'Brincalhão,Curioso,Sociável','lar_ideal'=>'Apartamento com tela,Brinquedos','imagem'=>'assets/pet-21.jpg','responsavel_nome'=>'Rafael Souza','responsavel_telefone'=>'(92) 90000-7878','responsavel_tipo'=>'Pessoa física','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'FeLV negativo.'],
+        ['nome_pet'=>'Pretinha','especie'=>'Gato','raca'=>'Sem raça definida (SRD)','idade_aproximada'=>'1 ano','idade_meses'=>12,'sexo'=>'Fêmea','cidade'=>'Belém','uf'=>'PA','bairro'=>'Umarizal','status'=>'Disponível','descricao'=>'Pretinha é uma gata preta carinhosa que quebra superstições com muito amor e ronrons.','temperamento'=>'Carinhosa,Caseira,Dócil','lar_ideal'=>'Apartamento com tela,Lar amoroso','imagem'=>'assets/pet-22.jpg','responsavel_nome'=>'ONG Gato Feliz PA','responsavel_telefone'=>'(91) 98888-1313','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Castração agendada.'],
+        ['nome_pet'=>'Aurora','especie'=>'Gato','raca'=>'Ragdoll','idade_aproximada'=>'2 anos','idade_meses'=>24,'sexo'=>'Fêmea','cidade'=>'Cuiabá','uf'=>'MT','bairro'=>'Centro-Sul','status'=>'Disponível','descricao'=>'Aurora é uma gata super dócil e relaxada, fica molinha no colo como uma boneca de pano.','temperamento'=>'Dócil,Calma,Apegada','lar_ideal'=>'Ambiente calmo,Família presente','imagem'=>'assets/pet-23.jpg','responsavel_nome'=>'Gatil Solidário','responsavel_telefone'=>'(65) 97777-1414','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Pelagem longa: escovação frequente.'],
+        ['nome_pet'=>'Tom','especie'=>'Gato','raca'=>'Sphynx','idade_aproximada'=>'3 anos','idade_meses'=>36,'sexo'=>'Macho','cidade'=>'Campo Grande','uf'=>'MS','bairro'=>'Centro','status'=>'Disponível','descricao'=>'Tom é um gato sem pelo, quentinho e extremamente apegado. Precisa de proteção solar e do frio.','temperamento'=>'Apegado,Sociável,Ativo','lar_ideal'=>'Ambiente protegido do frio e do sol','imagem'=>'assets/pet-24.jpg','responsavel_nome'=>'Juliana Martins','responsavel_telefone'=>'(67) 96666-1515','responsavel_tipo'=>'Pessoa física','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>0,'castrado'=>1,'condicao_especial'=>'Sem pelos: cuidados com temperatura e pele','observacoes_veterinarias'=>'Banhos periódicos recomendados.'],
+        ['nome_pet'=>'Mimi','especie'=>'Gato','raca'=>'Angorá','idade_aproximada'=>'6 meses','idade_meses'=>6,'sexo'=>'Fêmea','cidade'=>'Natal','uf'=>'RN','bairro'=>'Ponta Negra','status'=>'Disponível','descricao'=>'Mimi é uma filhotinha fofa e brincalhona, cheia de energia e pronta para um novo lar.','temperamento'=>'Brincalhona,Curiosa,Carinhosa','lar_ideal'=>'Apartamento com tela,Brinquedos','imagem'=>'assets/pet-25.jpg','responsavel_nome'=>'ONG Mia Resgate','responsavel_telefone'=>'(84) 95555-1616','responsavel_tipo'=>'ONG','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>0,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>0,'felv'=>0,'castrado'=>0,'condicao_especial'=>'','observacoes_veterinarias'=>'Primeira dose de vacina agendada.'],
+        ['nome_pet'=>'Bigode','especie'=>'Gato','raca'=>'Bengal','idade_aproximada'=>'2 anos','idade_meses'=>24,'sexo'=>'Macho','cidade'=>'João Pessoa','uf'=>'PB','bairro'=>'Manaíra','status'=>'Disponível','descricao'=>'Bigode é ágil, atlético e adora escalar. Tem energia de sobra e adora interagir.','temperamento'=>'Ativo,Esperto,Brincalhão','lar_ideal'=>'Ambiente com prateleiras e arranhadores','imagem'=>'assets/pet-26.jpg','responsavel_nome'=>'Lar Temporário do Pedro','responsavel_telefone'=>'(83) 94444-1717','responsavel_tipo'=>'Lar temporário','tipo_cadastro'=>'Pet individual','quantidade'=>1,'leishmaniose'=>'Não testado','vermifugo'=>1,'v8_v10'=>0,'antirrabica'=>1,'gripe_canina'=>0,'giardia'=>0,'v4_v5'=>1,'felv'=>0,'castrado'=>1,'condicao_especial'=>'','observacoes_veterinarias'=>'Gato muito ativo, precisa de enriquecimento ambiental.'],
+    ];
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -306,9 +522,17 @@ try {
     switch ($action) {
 
         /* ─── HEALTH ─── */
-        case 'health':
-            ok(['status'=>'ok','version'=>'1.0','banco'=>file_exists(__DIR__.'/banco.db')],
-               'API meu4patas funcionando.');
+        case 'health': {
+            $pdo = getPDO();
+            ok([
+                'status' => 'ok',
+                'version' => '1.1',
+                'banco' => file_exists(__DIR__ . '/banco.db'),
+                'usuarios' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios")->fetchColumn(),
+                'adotantes' => (int) $pdo->query("SELECT COUNT(*) FROM adotantes")->fetchColumn(),
+                'pets' => (int) $pdo->query("SELECT COUNT(*) FROM pets")->fetchColumn(),
+            ], 'API meu4patas funcionando.');
+        }
 
         /* ─── SESSÃO ─── */
         case 'sessao':

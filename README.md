@@ -6,13 +6,13 @@ O **meu4patas** é uma plataforma web para **adoção e doação responsável de
 pessoas físicas, ONGs e lares temporários. O projeto conecta animais que precisam de um lar a
 pessoas dispostas a adotar com responsabilidade.
 
-O desenvolvimento está dividido em fases. **A Fase 01 (atual)** é um protótipo navegável e
-interativo construído **apenas com HTML5, CSS3 e JavaScript puro**, sem backend e sem banco de
-dados real — a persistência é simulada com **localStorage** no navegador.
+O desenvolvimento começou como protótipo front-end e agora está na fase com **back-end real em
+PHP 8 + SQLite**. A interface continua em HTML5, CSS3 e JavaScript puro, mas os dados são carregados
+pela API `api.php` e persistidos no arquivo `banco.db`.
 
 ---
 
-## ✅ Fase 01 — Front-end funcional (entregue)
+## ✅ Versão atual — Front-end + PHP + SQLite
 
 ### Regras principais do sistema
 
@@ -26,18 +26,46 @@ dados real — a persistência é simulada com **localStorage** no navegador.
 - Para **cadastrar um pet para doação** também é obrigatório estar **cadastrado**.
 - Visitantes (sem cadastro) podem **visualizar, buscar, filtrar e abrir os detalhes** dos pets.
 
-### Como executar
+### Como executar no Replit
 
-Por usar apenas HTML, CSS e JS, **não há build nem dependências**. Basta:
+O projeto já inclui `.replit` configurado para rodar PHP na porta 5000:
 
-1. Abrir o arquivo [index.html](index.html) diretamente no navegador, **ou**
-2. Servir a pasta com um servidor estático (recomendado, para o `localStorage` e os assets
-   funcionarem de forma consistente):
-   ```bash
-   # Python 3
-   python3 -m http.server 8000
-   # depois acesse http://localhost:8000
-   ```
+```bash
+php -S 0.0.0.0:5000 router.php
+```
+
+No Replit, use o botão **Run**. Depois confira a API em:
+
+```text
+/api.php?action=health
+```
+
+A resposta esperada deve indicar `status: ok` e `pets: 26`. Se o `banco.db` ainda não existir ou
+estiver vazio, o próprio `api.php` cria as tabelas e cadastra automaticamente os usuários, adotantes
+e 26 animais de demonstração.
+
+Para publicar no Replit, use implantação com servidor PHP (`deploymentTarget = "cloudrun"`). Não use
+deploy estático, porque deploy estático não executa `api.php` nem grava SQLite.
+
+### Como executar localmente
+
+É necessário ter PHP com PDO SQLite habilitado:
+
+```bash
+php -S 0.0.0.0:5000 router.php
+```
+
+Depois acesse `http://localhost:5000`.
+
+### Contas de teste
+
+Todas usam a senha `123456`:
+
+| Perfil | E-mail |
+| :-- | :-- |
+| Administrador/teste | `admin@meu4patas.local` |
+| Adotante | `ana@meu4patas.local` |
+| Doador | `doador@meu4patas.local` |
 
 ### Funcionalidades
 
@@ -65,13 +93,18 @@ Por usar apenas HTML, CSS e JS, **não há build nem dependências**. Basta:
 - **Modal de detalhes** com ficha médica completa, história, lar ideal e dados do responsável.
 - **Listagem de pets** em cards menores, separada por Disponíveis, Indisponíveis e Adotados.
 - **Seção de requisitos** para adoção responsável.
-- **Persistência simulada** em `localStorage` e **mensagens (toasts)** de sucesso/erro.
+- **Persistência real** em SQLite via `api.php` e **mensagens (toasts)** de sucesso/erro.
 - **Layout responsivo** para mobile.
 
-### Estrutura de arquivos (Fase 01)
+### Estrutura de arquivos principal
 
 ```
 /
+├── .replit              (comando de execução no Replit)
+├── index.php            (inicializa o banco e serve index.html)
+├── router.php           (roteador para o servidor PHP embutido)
+├── api.php              (API JSON e bootstrap do SQLite)
+├── banco.db             (SQLite local versionado)
 ├── index.html            (landing: hero, explorar, busca/filtros, listagem, requisitos)
 ├── cadastro.html         (página do cadastro de usuário)
 ├── cadastrar-pet.html    (página do cadastro de pet/ninhada)
@@ -87,7 +120,10 @@ Por usar apenas HTML, CSS e JS, **não há build nem dependências**. Basta:
 │   ├── pet-rex.jpg
 │   ├── pet-mel.jpg
 │   ├── pet-nina.jpg
-│   └── pet-ninhada.jpg
+│   ├── pet-ninhada.jpg
+│   └── pet-7.jpg ... pet-26.jpg
+├── uploads/
+│   └── .gitkeep
 └── README.md
 ```
 
@@ -103,35 +139,11 @@ Por usar apenas HTML, CSS e JS, **não há build nem dependências**. Basta:
 > Observação: a logo (`assets/logo-meu4patas.png`) é um PNG com fundo transparente e as fotos dos
 > pets são imagens reais em JPG/PNG.
 
-### Chaves de `localStorage`
+### Banco de dados
 
-| Chave                  | Conteúdo                                   |
-| :--------------------- | :----------------------------------------- |
-| `meu4patas_usuario`    | Dados do usuário cadastrado                 |
-| `meu4patas_pets`       | Lista de pets (iniciais + cadastrados)      |
-| `meu4patas_interesses` | IDs dos pets em que o usuário tem interesse |
-| `meu4patas_recusas`    | IDs dos pets recusados no explorar          |
-| `meu4patas_interessados` | Quem demonstrou interesse em cada pet (para o responsável) |
-
-> Para **reiniciar** o protótipo (voltar aos pets iniciais), limpe o `localStorage` do site
-> pelo DevTools do navegador (Application → Local Storage) ou rode `localStorage.clear()` no console.
-
----
-
-## 🚧 Fase 02 — Back-end real (próxima fase)
-
-A próxima fase substituirá o `localStorage` por um back-end real, mantendo a mesma interface:
-
-| Camada            | Tecnologia                  |
-| :---------------- | :-------------------------- |
-| Apresentação      | HTML5 & CSS3                |
-| Interação         | JavaScript (DOM & Fetch)    |
-| Negócio (servidor)| PHP 8                       |
-| Persistência      | SQLite via PDO              |
-
-Inclui: API JSON, Fetch API real, CRUD completo, relacionamento entre adotante e pet, status real
-de adoção e banco com registros de teste. Os diretórios [api/](api/), [database/](database/) e
-[src/](src/) contêm o esboço inicial dessa fase.
+O banco oficial é `banco.db` na raiz do projeto. O `api.php` também contém o seed dos dados de teste;
+por isso, mesmo que o Replit crie um banco novo vazio, a primeira chamada ao site ou à API recria os
+26 pets automaticamente.
 
 ---
 
