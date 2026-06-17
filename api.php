@@ -966,9 +966,11 @@ try {
             $novoStatus  = sanitize((string)input('status', ''));
             if (!$interesseId) err('Interesse inválido.');
 
-            $permitidos = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Adoção concluída', 'Recusado'];
+            /* "Adoção concluída" só é definida pelo fluxo de confirmar_doacao,
+               garantindo que o adotante seja registrado e os demais interesses recusados. */
+            $permitidos = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Recusado'];
             if (!in_array($novoStatus, $permitidos, true))
-                err('Status de adoção inválido.');
+                err('Status de adoção inválido. Para concluir a adoção, use "Confirmar doação".');
 
             /* Confirmar que o interesse pertence a um pet do usuário logado */
             $stmt = $pdo->prepare("
@@ -985,14 +987,6 @@ try {
 
             $pdo->prepare("UPDATE interesses SET status=? WHERE id=?")
                 ->execute([$novoStatus, $interesseId]);
-
-            /* Concluir a adoção também atualiza o status do pet */
-            if ($novoStatus === 'Adoção concluída') {
-                $pdo->prepare("UPDATE pets SET status='Adotado', atualizado_em=CURRENT_TIMESTAMP WHERE id=?")
-                    ->execute([(int)$row['pet_id']]);
-            } elseif ($novoStatus === 'Recusado') {
-                /* Recusa de uma adoção não altera o status do pet */
-            }
 
             ok(null, 'Andamento da adoção atualizado.');
         }

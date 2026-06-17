@@ -1,0 +1,1 @@
+- [Donation flow invariant](donation-flow-invariant.md) — pet "Adotado"/"Adoção concluída" only via confirmar_doacao, never the status dropdown (it skips adotante + refusing rivals).

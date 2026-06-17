@@ -1466,11 +1466,6 @@ async function updateInterestStatus(interesseId, status) {
   // Atualiza o estado local para refletir imediatamente
   const item = state.interessados.find(i => i.interesseId === interesseId);
   if (item) item.status = status;
-  // Concluir a adoção marca o pet como adotado
-  if (status === 'Adoção concluída' && item) {
-    const pet = getPet(item.petId);
-    if (pet) pet.status = 'Adotado';
-  }
   showToast(r.message || 'Andamento da adoção atualizado.', 'success');
   renderProfile();
   renderCounters();
@@ -1541,7 +1536,10 @@ function ownedCardHtml(pet) {
   const lista = interessados.length
     ? interessados.map(r => {
         const st = r.status || 'Interesse enviado';
+        // "Adoção concluída" não é selecionável manualmente: só aparece quando já
+        // foi definida via "Confirmar doação". Mantém-se visível apenas nesse caso.
         const opts = INTEREST_STATUSES
+          .filter(s => s !== 'Adoção concluída' || st === 'Adoção concluída')
           .map(s => `<option value="${escapeHtml(s)}"${s === st ? ' selected' : ''}>${escapeHtml(s)}</option>`)
           .join('');
         const concluido = st === 'Adoção concluída';
