@@ -1,0 +1,763 @@
+MEU4PATAS — IMPLEMENTAR BACKEND REAL PHP + SQLITE NO REPLIT
+
+Você vai corrigir e finalizar o projeto meu4patas para rodar no Replit usando PHP 8, SQLite, PDO e Fetch API.
+
+Contexto:
+O projeto já possui front-end moderno com:
+
+* index.html
+* cadastro.html
+* cadastrar-pet.html
+* perfil.html
+* css/style.css
+* js/script.js ou js/Script.js
+* assets/
+* uploads/
+
+A interface atual deve ser preservada. Não reconstrua o layout do zero.
+
+O problema atual é que o projeto está misturado:
+
+* HTML novo do meu4patas.
+* Resquícios antigos de “Patinhas”.
+* Banco antigo chamado patinhas.sqlite.
+* JS antigo chamando arquivos como api/listar_pets.php e api/adotar_pet.php.
+* Estrutura ainda sem integração final com SQLite via PDO.
+
+Objetivo:
+Criar a versão final funcional para Replit, usando:
+
+* PHP 8
+* SQLite
+* PDO
+* api.php
+* banco.db
+* Fetch API
+* CRUD completo de pets e adotantes
+* Cadastro/login de usuário
+* Upload de imagem dos pets
+* Interesse em pets
+* Confirmação de adoção apenas por painel de gestão
+
+IMPORTANTE:
+O usuário comum NÃO realiza adoção direta.
+O usuário comum apenas demonstra interesse.
+O pet só muda para “Adotado” no painel de gestão/admin/responsável.
+
+⸻
+
+1. REGRAS DE SEGURANÇA E PRESERVAÇÃO
+
+⸻
+
+Antes de alterar:
+
+1. Rodar:
+    git status
+2. Não apagar o front-end atual.
+3. Não remover a logo meu4patas.
+4. Não alterar a identidade visual sem necessidade.
+5. Não usar Laravel, Composer obrigatório, MySQL, PostgreSQL ou Node como backend.
+6. Não fazer force push.
+7. Não apagar arquivos de colegas sem necessidade.
+8. Não deixar warnings/notices PHP aparecendo na tela.
+9. Toda resposta da API deve ser JSON.
+
+⸻
+
+2. ESTRUTURA FINAL ESPERADA
+
+⸻
+
+A estrutura final deve ficar assim:
+
+/
+├── index.php
+├── index.html
+├── cadastro.html
+├── cadastrar-pet.html
+├── perfil.html
+├── api.php
+├── banco.db
+├── css/
+│   └── style.css
+├── js/
+│   └── script.js
+├── assets/
+│   └── imagens usadas pelo front-end
+├── uploads/
+│   └── .gitkeep
+├── README.md
+└── replit.nix
+
+Regras:
+
+1. O banco oficial deve ser banco.db na raiz.
+2. Parar de usar patinhas.sqlite como banco principal.
+3. O endpoint oficial deve ser api.php.
+4. O JS deve chamar api.php via fetch().
+5. Arquivos antigos em api/ ou database/ podem ser preservados, mas não devem ser a fonte principal.
+6. Se existir js/Script.js, padronizar para js/script.js e corrigir os HTMLs.
+
+⸻
+
+3. INDEX.PHP
+
+⸻
+
+Criar ou corrigir index.php para:
+
+1. Criar uploads/ se não existir.
+2. Criar banco.db se não existir.
+3. Inicializar o banco automaticamente.
+4. Servir index.html.
+5. Não exibir erros PHP na tela.
+
+Exemplo de comportamento:
+Ao clicar em Run no Replit, o site deve abrir normalmente e o banco deve ser criado automaticamente.
+
+⸻
+
+4. API.PHP
+
+⸻
+
+Criar api.php como API principal do sistema.
+
+Toda resposta deve ter:
+
+header(‘Content-Type: application/json; charset=utf-8’);
+
+Formato de sucesso:
+
+{
+“success”: true,
+“message”: “Operação realizada com sucesso”,
+“data”: {}
+}
+
+Formato de erro:
+
+{
+“success”: false,
+“message”: “Mensagem clara do erro”,
+“data”: null
+}
+
+Regras:
+
+1. Usar PDO.
+2. Usar prepared statements.
+3. Usar session_start().
+4. Usar try/catch.
+5. Validar dados no PHP.
+6. Não retornar HTML pela API.
+7. Não deixar warning quebrar JSON.
+8. Ativar chaves estrangeiras:
+    PRAGMA foreign_keys = ON;
+
+⸻
+
+5. CONEXÃO SQLITE
+
+⸻
+
+Criar função getPDO():
+
+* Conectar em banco.db na raiz.
+* Usar PDO.
+* Ativar ERRMODE_EXCEPTION.
+* Ativar FETCH_ASSOC.
+* Ativar PRAGMA foreign_keys = ON.
+
+Exemplo:
+
+$pdo = new PDO(‘sqlite:’ . DIR . ‘/banco.db’);
+
+⸻
+
+6. TABELAS OBRIGATÓRIAS
+
+⸻
+
+Criar automaticamente as tabelas se não existirem.
+
+6.1 usuarios
+
+Campos:
+
+* id INTEGER PRIMARY KEY AUTOINCREMENT
+* nome_completo TEXT NOT NULL
+* cpf TEXT NOT NULL UNIQUE
+* cpf_limpo TEXT NOT NULL UNIQUE
+* email TEXT NOT NULL UNIQUE
+* telefone TEXT NOT NULL
+* data_nascimento TEXT NOT NULL
+* idade INTEGER NOT NULL
+* maior21 INTEGER NOT NULL DEFAULT 0
+* cidade TEXT NOT NULL
+* uf TEXT NOT NULL
+* bairro TEXT NOT NULL
+* tipo_cadastro TEXT NOT NULL
+* tipo_moradia TEXT NOT NULL
+* possui_outros_animais TEXT NOT NULL
+* ja_adotou_antes TEXT NOT NULL
+* senha_hash TEXT NOT NULL
+* aceita_termos INTEGER NOT NULL DEFAULT 0
+* criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+* atualizado_em TEXT
+
+6.2 adotantes
+
+Campos:
+
+* id INTEGER PRIMARY KEY AUTOINCREMENT
+* usuario_id INTEGER
+* nome_completo TEXT NOT NULL
+* telefone TEXT NOT NULL
+* endereco TEXT
+* cidade TEXT NOT NULL
+* uf TEXT NOT NULL
+* bairro TEXT
+* tipo_moradia TEXT
+* criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+* atualizado_em TEXT
+* FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+
+6.3 pets
+
+Campos:
+
+* id INTEGER PRIMARY KEY AUTOINCREMENT
+* nome_pet TEXT NOT NULL
+* especie TEXT NOT NULL
+* raca TEXT NOT NULL
+* idade_aproximada TEXT NOT NULL
+* idade_meses INTEGER NOT NULL DEFAULT 0
+* sexo TEXT NOT NULL
+* cidade TEXT NOT NULL
+* uf TEXT NOT NULL
+* bairro TEXT
+* status TEXT NOT NULL DEFAULT ‘Disponível’
+* descricao TEXT NOT NULL
+* temperamento TEXT
+* lar_ideal TEXT
+* imagem TEXT NOT NULL
+* responsavel_nome TEXT NOT NULL
+* responsavel_telefone TEXT NOT NULL
+* responsavel_tipo TEXT NOT NULL
+* tipo_cadastro TEXT NOT NULL
+* quantidade INTEGER DEFAULT 1
+* leishmaniose TEXT DEFAULT ‘Não testado’
+* vermifugo INTEGER DEFAULT 0
+* v8_v10 INTEGER DEFAULT 0
+* antirrabica INTEGER DEFAULT 0
+* gripe_canina INTEGER DEFAULT 0
+* giardia INTEGER DEFAULT 0
+* v4_v5 INTEGER DEFAULT 0
+* felv INTEGER DEFAULT 0
+* castrado INTEGER DEFAULT 0
+* condicao_especial TEXT
+* observacoes_veterinarias TEXT
+* usuario_doador_id INTEGER
+* adotante_id INTEGER NULL
+* criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+* atualizado_em TEXT
+* FOREIGN KEY(usuario_doador_id) REFERENCES usuarios(id) ON DELETE SET NULL
+* FOREIGN KEY(adotante_id) REFERENCES adotantes(id) ON DELETE SET NULL
+
+Status permitido:
+
+* Disponível
+* Indisponível
+* Adotado
+
+Regra:
+Usuário comum não pode cadastrar pet como Adotado.
+
+6.4 interesses
+
+Campos:
+
+* id INTEGER PRIMARY KEY AUTOINCREMENT
+* usuario_id INTEGER NOT NULL
+* pet_id INTEGER NOT NULL
+* status TEXT NOT NULL DEFAULT ‘Interesse enviado’
+* mensagem TEXT
+* criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+* FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+* FOREIGN KEY(pet_id) REFERENCES pets(id) ON DELETE CASCADE
+* UNIQUE(usuario_id, pet_id)
+
+Regra:
+Interesse não altera status do pet.
+
+6.5 recusas
+
+Campos:
+
+* id INTEGER PRIMARY KEY AUTOINCREMENT
+* usuario_id INTEGER
+* pet_id INTEGER NOT NULL
+* criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+* FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+* FOREIGN KEY(pet_id) REFERENCES pets(id) ON DELETE CASCADE
+
+⸻
+
+7. DADOS DE TESTE
+
+⸻
+
+Ao inicializar o banco, inserir dados de teste se as tabelas estiverem vazias.
+
+Criar usuários:
+
+* admin@meu4patas.local / senha 123456
+* ana@meu4patas.local / senha 123456
+* doador@meu4patas.local / senha 123456
+
+Criar adotantes:
+
+* Ana Silva
+* Arthur Santos
+
+Criar pets:
+
+* Luna — Cão — SRD — Disponível
+* Thor — Cão — Pastor Alemão — Disponível
+* Mel — Gato — SRD — Disponível
+* Nina — Gato — Siamês — Indisponível
+* Bolinha — Cão — SRD — Adotado por Ana Silva
+
+Regras:
+
+1. Senhas com password_hash.
+2. Pelo menos 2 adotantes.
+3. Pelo menos 2 pets.
+4. Pelo menos 1 pet adotado com adotante_id preenchido.
+5. Pelo menos 2 pets disponíveis com adotante_id NULL.
+
+⸻
+
+8. ENDPOINTS NECESSÁRIOS
+
+⸻
+
+Criar endpoints por action em api.php.
+
+8.1 Sistema
+
+GET api.php?action=health
+
+Retorno:
+API meu4patas funcionando.
+
+8.2 Autenticação
+
+POST action=registrar_usuario
+POST action=login
+POST action=logout
+GET action=sessao
+POST action=atualizar_usuario
+
+Regras:
+
+* CPF válido.
+* E-mail único.
+* password_hash.
+* password_verify.
+* Calcular idade no PHP.
+* maior21 = idade >= 21.
+* Aceite de termos obrigatório.
+* Atualização de usuário não pode apagar interesses ou pets.
+
+8.3 Adotantes
+
+GET action=listar_adotantes
+POST action=criar_adotante
+POST action=atualizar_adotante
+POST action=excluir_adotante
+
+Regras:
+
+* CRUD completo.
+* Não excluir adotante vinculado a pet adotado sem tratar vínculo.
+* Retornar JSON.
+
+8.4 Pets
+
+GET action=listar_pets
+GET action=listar_pets_disponiveis
+GET action=listar_pets_adotados
+GET action=obter_pet&id=ID
+POST action=criar_pet
+POST action=atualizar_pet
+POST action=excluir_pet
+
+Regras:
+
+* CRUD completo.
+* Upload de imagem no criar_pet.
+* Pets adotados devem retornar nome do adotante usando JOIN.
+* Usuário comum não cadastra pet como Adotado.
+
+8.5 Interesses
+
+POST action=registrar_interesse
+GET action=meus_interesses
+POST action=remover_interesse
+
+Regras:
+
+* Usuário precisa estar logado.
+* Usuário precisa ter 21 anos ou mais.
+* Usuário precisa aceitar termos.
+* Pet precisa estar Disponível.
+* Não registrar interesse duplicado.
+* Não alterar status do pet.
+
+8.6 Recusas
+
+POST action=registrar_recusa
+GET action=minhas_recusas
+POST action=remover_recusa
+
+8.7 Meus pets
+
+GET action=meus_pets
+
+Deve retornar pets cadastrados pelo usuário logado e interessados por pet.
+
+8.8 Painel de confirmação de adoção
+
+POST action=confirmar_adocao
+POST action=desfazer_adocao
+GET action=painel_adocao
+
+Regra:
+Adoção só é confirmada neste painel.
+Usuário comum não confirma adoção pelo botão de interesse.
+
+confirmar_adocao:
+
+* Receber pet_id e adotante_id.
+* Atualizar pets.status = ‘Adotado’.
+* Atualizar pets.adotante_id.
+
+desfazer_adocao:
+
+* Atualizar pets.status = ‘Disponível’.
+* Atualizar pets.adotante_id = NULL.
+
+⸻
+
+9. UPLOAD DE IMAGEM
+
+⸻
+
+Em criar_pet:
+
+1. Exigir imagem.
+2. Aceitar apenas:
+    * jpg
+    * jpeg
+    * png
+    * webp
+3. Criar uploads/ se não existir.
+4. Gerar nome seguro:
+    pet_uniqid.ext
+5. Salvar arquivo em uploads/.
+6. Salvar caminho no banco:
+    uploads/nome.ext
+
+⸻
+
+10. VALIDAÇÃO DE CPF NO PHP
+
+⸻
+
+Criar função validarCPF($cpf).
+
+Ela deve:
+
+1. Remover não números.
+2. Exigir 11 dígitos.
+3. Rejeitar números repetidos.
+4. Validar os dois dígitos verificadores.
+
+Usar em:
+
+* registrar_usuario
+* atualizar_usuario
+
+⸻
+
+11. REGRA DE 21 ANOS NO PHP
+
+⸻
+
+Criar função calcularIdade($dataNascimento).
+
+Regra:
+
+* maior21 = idade >= 21.
+* registrar_interesse deve bloquear menor de 21 anos.
+
+Mensagem:
+“Para demonstrar interesse em adoção, é necessário ter 21 anos ou mais.”
+
+⸻
+
+12. INTEGRAR FRONT-END COM FETCH
+
+⸻
+
+Atualizar js/script.js para usar api.php.
+
+O front-end deve chamar:
+
+* api.php?action=sessao
+* api.php?action=registrar_usuario
+* api.php?action=login
+* api.php?action=logout
+* api.php?action=listar_pets
+* api.php?action=criar_pet
+* api.php?action=registrar_interesse
+* api.php?action=registrar_recusa
+* api.php?action=meus_interesses
+* api.php?action=meus_pets
+* api.php?action=atualizar_usuario
+* api.php?action=painel_adocao
+* api.php?action=confirmar_adocao
+* api.php?action=desfazer_adocao
+
+Regras:
+
+1. Não usar localStorage como banco principal.
+2. Não recarregar a página para atualizar dados.
+3. Atualizar DOM dinamicamente.
+4. Exibir mensagens toast.
+5. Manter máscara e validação de CPF no JS também.
+6. Manter busca e filtros funcionando.
+
+⸻
+
+13. CADASTRO.HTML
+
+⸻
+
+Ao enviar userForm:
+
+1. Validar no JS.
+2. Enviar para api.php?action=registrar_usuario.
+3. Em sucesso, fazer login automático ou redirecionar para login/index.
+4. Mostrar mensagens claras.
+
+Também implementar login simples se ainda não existir:
+
+* e-mail
+* senha
+
+⸻
+
+14. CADASTRAR-PET.HTML
+
+⸻
+
+Ao abrir:
+
+1. Verificar sessão via api.php?action=sessao.
+2. Se não logado, redirecionar para cadastro.html.
+
+Ao enviar petForm:
+
+1. Enviar FormData para api.php?action=criar_pet.
+2. Enviar imagem real.
+3. Em sucesso, redirecionar para index.html ou perfil.html.
+4. Mostrar mensagem clara.
+
+⸻
+
+15. INDEX.HTML
+
+⸻
+
+Ao carregar:
+
+1. Buscar pets via api.php?action=listar_pets.
+2. Renderizar explorar pets.
+3. Renderizar listagens:
+    * Disponíveis
+    * Indisponíveis
+    * Adotados
+4. Busca e filtros devem funcionar.
+5. “Tenho interesse” chama api.php?action=registrar_interesse.
+6. “Não tenho interesse” chama api.php?action=registrar_recusa.
+7. Pet não muda para Adotado ao registrar interesse.
+
+⸻
+
+16. PERFIL.HTML
+
+⸻
+
+Ao abrir:
+
+1. Verificar sessão.
+2. Se não logado, redirecionar para cadastro.html.
+3. Mostrar dados pessoais.
+4. Permitir editar dados pessoais.
+5. Mostrar meus interesses.
+6. Mostrar minhas recusas.
+7. Mostrar meus pets cadastrados.
+8. Mostrar interessados nos meus pets.
+9. Mostrar painel simples para confirmar/desfazer adoção.
+
+Textos:
+
+* Usar “Meus interesses enviados”.
+* Não usar “Meus pets adotados” para usuário comum.
+
+⸻
+
+17. LIMPAR NOMES ANTIGOS
+
+⸻
+
+Trocar referências antigas:
+
+* Patinhas → meu4patas
+* patinhas.sqlite → banco.db
+
+Não usar mais como fluxo principal:
+
+* api/adotar_pet.php
+* api/listar_pets.php
+* api/cadastrar_pet.php
+
+O fluxo oficial deve ser api.php?action=…
+
+⸻
+
+18. README
+
+⸻
+
+Atualizar README.md com:
+
+* Como rodar no Replit.
+* Informar que agora usa PHP 8 + SQLite + PDO.
+* Informar que banco.db fica na raiz.
+* Informar que uploads/ guarda imagens.
+* Informar login de teste:
+    * admin@meu4patas.local / 123456
+    * ana@meu4patas.local / 123456
+    * doador@meu4patas.local / 123456
+* Explicar regra:
+    usuário comum apenas demonstra interesse;
+    adoção só é confirmada no painel.
+
+⸻
+
+19. TESTES OBRIGATÓRIOS
+
+⸻
+
+Testar no Replit:
+
+1. Abrir index.php.
+2. Ver se banco.db foi criado.
+3. Ver se uploads/ foi criada.
+4. Acessar api.php?action=health.
+5. Criar usuário.
+6. Login.
+7. Logout.
+8. Sessão.
+9. Listar pets.
+10. Cadastrar pet com imagem.
+11. Editar pet.
+12. Excluir pet.
+13. Listar adotantes.
+14. Criar adotante.
+15. Editar adotante.
+16. Excluir adotante.
+17. Registrar interesse.
+18. Confirmar que interesse não muda status do pet.
+19. Bloquear interesse de menor de 21 anos.
+20. Registrar recusa.
+21. Abrir Minha Conta.
+22. Editar dados pessoais.
+23. Ver meus interesses.
+24. Ver meus pets cadastrados.
+25. Confirmar adoção no painel.
+26. Ver pet adotado com nome do adotante.
+27. Desfazer adoção.
+28. Conferir console sem erros.
+29. Conferir PHP sem warnings.
+
+⸻
+
+20. CRITÉRIOS DE ACEITE
+
+⸻
+
+A tarefa estará concluída quando:
+
+1. O projeto rodar no Replit.
+2. api.php funcionar.
+3. banco.db existir na raiz.
+4. SQLite usar PDO.
+5. PRAGMA foreign_keys = ON estiver ativo.
+6. CRUD de pets funcionar.
+7. CRUD de adotantes funcionar.
+8. Upload de imagem funcionar.
+9. Cadastro/login funcionar.
+10. CPF for validado no JS e PHP.
+11. Regra de 21 anos funcionar no JS e PHP.
+12. Interesse não concluir adoção.
+13. Painel confirmar adoção.
+14. Pets adotados mostrarem nome do adotante via JOIN.
+15. Fetch API ser usado no front-end.
+16. localStorage não ser fonte principal.
+17. README estar atualizado.
+18. Não haver erro no console.
+19. Não haver warning PHP na tela.
+
+⸻
+
+21. COMMIT
+
+⸻
+
+Depois de testar:
+
+git status
+
+Adicionar:
+
+git add index.php index.html cadastro.html cadastrar-pet.html perfil.html api.php banco.db css/style.css js/script.js uploads README.md
+
+Commit:
+
+git commit -m “feat: implementar backend PHP SQLite no meu4patas”
+
+Não fazer push ou merge sem confirmação.
+
+⸻
+
+22. RELATÓRIO FINAL
+
+⸻
+
+Ao terminar, informar:
+
+1. Arquivos criados.
+2. Arquivos alterados.
+3. Tabelas criadas.
+4. Endpoints criados.
+5. Dados de teste inseridos.
+6. Como rodar no Replit.
+7. Logins de teste.
+8. Testes realizados.
+9. Pendências.
