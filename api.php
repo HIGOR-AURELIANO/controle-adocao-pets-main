@@ -506,6 +506,29 @@ function input(string $key, mixed $default = ''): mixed {
     return $default;
 }
 
+/**
+ * Lê a imagem enviada e devolve um data URI base64 para gravar no banco.
+ * Guardar a foto no próprio banco.db (versionado/persistente) evita que a
+ * imagem suma em redeploy do Replit ou em "git reset". Devolve null se não
+ * houver arquivo enviado; chama err() em caso de arquivo inválido.
+ */
+function imagemUploadParaDataUri(): ?string {
+    if (empty($_FILES['imagem']['tmp_name']) || !is_uploaded_file($_FILES['imagem']['tmp_name']))
+        return null;
+
+    $allowed = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+    $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
+    if (!isset($allowed[$ext])) err('Formato de imagem inválido. Use jpg, jpeg, png ou webp.');
+    if ($_FILES['imagem']['size'] > 3 * 1024 * 1024)
+        err('Imagem muito grande. Máximo 3MB.');
+
+    $bin = file_get_contents($_FILES['imagem']['tmp_name']);
+    if ($bin === false) err('Erro ao ler a imagem enviada.');
+
+    return 'data:' . $allowed[$ext] . ';base64,' . base64_encode($bin);
+}
+
+
 /* ═══════════════════════════════════════════════════════
    ROTEADOR — só executa quando chamado diretamente
 ═══════════════════════════════════════════════════════ */
@@ -795,24 +818,20 @@ try {
             /* Impedir usuário comum de cadastrar como Adotado */
             if ($status === 'Adotado') $status = 'Disponível';
 
-            /* Upload de imagem */
-            $imagem = '';
-            if (!empty($_FILES['imagem']['tmp_name'])) {
-                $allowed = ['jpg','jpeg','png','webp'];
-                $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
-                if (!in_array($ext, $allowed)) err('Formato de imagem inválido. Use jpg, jpeg, png ou webp.');
-                if ($_FILES['imagem']['size'] > 5 * 1024 * 1024) err('Imagem muito grande. Máximo 5MB.');
+            /* Responsável: se não informado, usa o cadastro de quem está logado */
+            if ($resNome === '' || $resTel === '') {
+                $du = $pdo->prepare("SELECT nome_completo, telefone FROM usuarios WHERE id=?");
+                $du->execute([$s['id']]);
+                if ($dadosUsuario = $du->fetch()) {
+                    if ($resNome === '') $resNome = $dadosUsuario['nome_completo'];
+                    if ($resTel  === '') $resTel  = $dadosUsuario['telefone'];
+                }
+            }
 
-                $uploadsDir = __DIR__ . '/uploads';
-                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
-
-                $filename = 'pet_' . uniqid() . '.' . $ext;
-                $dest = $uploadsDir . '/' . $filename;
-                if (!move_uploaded_file($_FILES['imagem']['tmp_name'], $dest))
-                    err('Erro ao salvar imagem.');
-                $imagem = 'uploads/' . $filename;
-            } else {
-                /* Imagem padrão por espécie */
+            /* Imagem gravada no banco (data URI) — persiste em redeploy/reset */
+            $imagem = imagemUploadParaDataUri();
+            if ($imagem === null) {
+                /* Imagem padrão por espécie quando nenhuma foto é enviada */
                 $imagem = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
             }
 
@@ -869,17 +888,9 @@ try {
             $obs     = sanitize((string)input('observacoes_veterinarias', $existing['observacoes_veterinarias']));
             $cast    = (int)(bool)input('castrado', $existing['castrado']);
 
-            $imagem = $existing['imagem'];
-            if (!empty($_FILES['imagem']['tmp_name'])) {
-                $allowed = ['jpg','jpeg','png','webp'];
-                $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
-                if (in_array($ext, $allowed)) {
-                    $filename = 'pet_' . uniqid() . '.' . $ext;
-                    $dest = __DIR__ . '/uploads/' . $filename;
-                    if (move_uploaded_file($_FILES['imagem']['tmp_name'], $dest))
-                        $imagem = 'uploads/' . $filename;
-                }
-            }
+            /* Nova foto (data URI no banco) ou mantém a imagem atual */
+            $novaImagem = imagemUploadParaDataUri();
+            $imagem = $novaImagem ?? $existing['imagem'];
 
             $pdo->prepare("
                 UPDATE pets SET nome_pet=?,especie=?,raca=?,idade_aproximada=?,idade_meses=?,
