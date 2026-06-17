@@ -190,17 +190,17 @@ a { color: var(--verde-claro); }
 .btn-cadastrar:hover { background: var(--laranja-escuro); transform: translateY(-1px); }
 .btn-login {
   background: transparent;
-  color: var(--verde) !important;
+  color: var(--creme) !important;
   padding: 9px 18px;
   border-radius: 100px;
-  border: 1.5px solid var(--verde);
+  border: 1.5px solid var(--creme);
   font-weight: 600;
   font-size: 0.85rem;
   text-decoration: none;
   transition: background 0.2s, color 0.2s, transform 0.15s;
   white-space: nowrap;
 }
-.btn-login:hover { background: var(--verde); color: #fff !important; transform: translateY(-1px); }
+.btn-login:hover { background: var(--creme); color: var(--verde) !important; transform: translateY(-1px); }
 
 /* hamburger */
 .nav-toggle {
