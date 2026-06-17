@@ -1,4 +1,7 @@
 modules = ["nodejs-20", "web", "python-3.11", "php-8.2"]
+entrypoint = "index.php"
+run = "php -S 0.0.0.0:5000 router.php"
+
 [agent]
 expertMode = true
 stack = "BEST_EFFORT_FALLBACK"
@@ -35,5 +38,5 @@ localPort = 5000
 externalPort = 80
 
 [deployment]
-deploymentTarget = "static"
-publicDir = "."
+run = "php -S 0.0.0.0:5000 router.php"
+deploymentTarget = "cloudrun"
