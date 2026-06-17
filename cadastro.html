@@ -30,6 +30,7 @@
         <li><a href="index.html#requisitos">Requisitos</a></li>
       </ul>
       <div class="nav-user" id="navUser">
+        <a href="login.html" class="btn-login" id="btnLogin">Entrar</a>
         <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
         <div class="user-menu" id="userMenu" hidden>
           <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
@@ -88,7 +89,11 @@
           </div>
           <div class="form-group">
             <label for="u_nascimento">Data de nascimento *</label>
-            <input type="date" id="u_nascimento" name="nascimento">
+            <input type="text" id="u_nascimento" name="nascimento" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="bday">
+          </div>
+          <div class="form-group">
+            <label for="u_cep">CEP <small>(preenche o endereço)</small></label>
+            <input type="text" id="u_cep" name="cep" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code">
           </div>
           <div class="form-group">
             <label for="u_cidade">Cidade *</label>
@@ -151,11 +156,13 @@
 
         <label class="check-row">
           <input type="checkbox" id="u_termos" name="termos">
-          <span>Li e aceito os <a href="index.html#requisitos">termos de adoção responsável</a>. Estou ciente de que demonstrar interesse em adoção exige ter <strong>21 anos ou mais</strong>.</span>
+          <span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">termos de adoção responsável</a>. Estou ciente de que demonstrar interesse em adoção exige ter <strong>21 anos ou mais</strong>.</span>
         </label>
 
         <div class="form-error" id="userFormError" role="alert"></div>
         <button type="submit" class="btn-primary btn-full">Concluir cadastro 🐾</button>
+
+        <p class="form-switch">Já tem conta? <a href="login.html">Entrar</a></p>
       </form>
     </div>
   </main>
@@ -191,6 +198,7 @@
           <li><a href="cadastro.html">Criar conta</a></li>
           <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
           <li><a href="perfil.html">Minha conta</a></li>
+          <li><a href="termos.html">Termo de adoção</a></li>
         </ul>
       </nav>
 

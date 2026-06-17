@@ -32,6 +32,7 @@
         <li><a href="#requisitos">Requisitos</a></li>
       </ul>
       <div class="nav-user" id="navUser">
+        <a href="login.html" class="btn-login" id="btnLogin">Entrar</a>
         <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
         <div class="user-menu" id="userMenu" hidden>
           <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
@@ -124,12 +125,12 @@
     </div>
   </section>
 
-  <!-- ───────────── MAPA / PERTO DE VOCÊ ───────────── -->
-  <section class="map-section" id="mapa">
+  <!-- ───────────── MAPA / PERTO DE VOCÊ (aparece ao ativar o filtro "Perto de você") ───────────── -->
+  <section class="map-section" id="mapa" hidden>
     <div class="map-inner">
       <p class="section-eyebrow">📍 Perto de você</p>
       <h2 class="section-title">Pets no mapa</h2>
-      <p class="map-lead">Veja onde estão os animais e encontre um amigo perto de você. O mapa acompanha a busca e os filtros acima.</p>
+      <p class="map-lead">Veja no mapa onde estão todos os animais e encontre um amigo perto de você. Use a busca acima para refinar; centralizamos na sua cidade quando você está cadastrado.</p>
       <div class="map-bar">
         <button class="btn-locate" id="btnLocateMe" type="button">📍 Centralizar perto de mim</button>
         <span class="map-count" id="mapCount"></span>
@@ -235,6 +236,7 @@
           <li><a href="cadastro.html">Criar conta</a></li>
           <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
           <li><a href="perfil.html">Minha conta</a></li>
+          <li><a href="termos.html">Termo de adoção</a></li>
         </ul>
       </nav>
 

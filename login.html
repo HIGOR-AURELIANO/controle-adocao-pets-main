@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minha conta — meu4patas</title>
-  <meta name="description" content="Sua conta no meu4patas: interesses, pets cadastrados e suas informações.">
+  <title>Entrar — meu4patas</title>
+  <meta name="description" content="Entre na sua conta meu4patas para acompanhar seus interesses e os pets que você cadastrou.">
   <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=logo-final-1">
@@ -39,7 +39,7 @@
             <span class="user-caret" aria-hidden="true">▾</span>
           </button>
           <div class="user-dropdown" id="userDropdown" hidden>
-            <a href="perfil.html" class="active">👤 Minha conta</a>
+            <a href="perfil.html">👤 Minha conta</a>
             <button type="button" id="btnLogoutMenu">↩ Sair</button>
           </div>
         </div>
@@ -51,15 +51,31 @@
   <section class="page-head">
     <div class="page-head-inner">
       <a class="back-link" href="index.html">← Voltar ao início</a>
-      <p class="section-eyebrow">Sua conta</p>
-      <h1 class="page-title">Minha conta</h1>
-      <p class="page-lead">Acompanhe os pets em que você demonstrou interesse, os animais que você cadastrou para doação e seus dados.</p>
+      <p class="section-eyebrow">Bem-vindo(a) de volta</p>
+      <h1 class="page-title">Entrar na sua conta</h1>
+      <p class="page-lead">Acesse com o e-mail e a senha que você usou no cadastro para acompanhar seus interesses e os pets que cadastrou.</p>
     </div>
   </section>
 
-  <!-- ───────────── CONTEÚDO DO PERFIL (renderizado pelo JS) ───────────── -->
-  <main class="profile-page" id="perfil">
-    <div id="profileRoot"><!-- preenchido por renderProfile() --></div>
+  <!-- ───────────── LOGIN ───────────── -->
+  <main class="form-page">
+    <div class="form-inner">
+      <form id="loginForm" class="card-form" novalidate>
+        <div class="form-group">
+          <label for="l_email">E-mail *</label>
+          <input type="email" id="l_email" name="email" autocomplete="email" placeholder="voce@email.com">
+        </div>
+        <div class="form-group">
+          <label for="l_senha">Senha *</label>
+          <input type="password" id="l_senha" name="senha" autocomplete="current-password" placeholder="Sua senha">
+        </div>
+
+        <div class="form-error" id="loginFormError" role="alert"></div>
+        <button type="submit" class="btn-primary btn-full">Entrar 🐾</button>
+
+        <p class="form-switch">Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p>
+      </form>
+    </div>
   </main>
 
   <!-- ───────────── FOOTER ───────────── -->
@@ -90,6 +106,7 @@
       <nav class="footer-col">
         <h4 class="footer-col-title">Participe</h4>
         <ul>
+          <li><a href="login.html">Entrar</a></li>
           <li><a href="cadastro.html">Criar conta</a></li>
           <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
           <li><a href="perfil.html">Minha conta</a></li>
@@ -109,14 +126,6 @@
       <span class="footer-made">Feito com 💛 pelo Grupo 6 · <strong>Adote, não compre</strong></span>
     </div>
   </footer>
-
-  <!-- ───────────── MODAL DE DETALHES ───────────── -->
-  <div class="modal-overlay" id="modalOverlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalPetName">
-      <button class="modal-close" id="modalClose" aria-label="Fechar">✕</button>
-      <div class="modal-content" id="modalContent"><!-- preenchido pelo JS --></div>
-    </div>
-  </div>
 
   <!-- ───────────── TOAST ───────────── -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
