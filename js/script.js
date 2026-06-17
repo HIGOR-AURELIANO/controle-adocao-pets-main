@@ -11,6 +11,7 @@
 =========================================================== */
 const LS = {
   usuario:     'meu4patas_usuario',
+  contas:      'meu4patas_contas',     // todas as contas cadastradas (para login)
   pets:        'meu4patas_pets',
   interesses:  'meu4patas_interesses',
   recusas:     'meu4patas_recusas',
@@ -387,13 +388,16 @@ const INITIAL_PETS = [
 const state = {
   pets: [],
   user: null,
+  contas: [],
   interesses: [],
   recusas: [],
   interessados: [],   // registro de quem demonstrou interesse: {petId, nome, telefone, email, data}
   activeFilter: 'todos',
   searchTerm: '',
   currentExploreId: null,
-  pendingImage: '' // dataURL da imagem selecionada no cadastro de pet
+  geo: null,         // {lat, lng} da geolocalização do navegador (quando concedida)
+  editingPetId: null, // id do pet em edição (modo editar do formulário de pet)
+  pendingImage: ''   // dataURL da imagem selecionada no cadastro de pet
 };
 
 /* atalhos de seletor */
@@ -420,13 +424,38 @@ function savePets() {
 
 function loadUser() {
   state.user = safeParse(localStorage.getItem(LS.usuario), null);
+  state.contas = safeParse(localStorage.getItem(LS.contas), []);
   state.interesses = safeParse(localStorage.getItem(LS.interesses), []);
   state.recusas = safeParse(localStorage.getItem(LS.recusas), []);
   state.interessados = safeParse(localStorage.getItem(LS.interessados), []);
+
+  // Migração suave: garante que a sessão atual também conste na lista de contas.
+  if (state.user && state.user.email && !findConta(state.user.email)) upsertConta(state.user);
 }
 
 function saveUser() {
   localStorage.setItem(LS.usuario, JSON.stringify(state.user));
+}
+
+/* ── CONTAS (login) ──
+   Mantém todas as contas cadastradas, separadas da sessão atual (LS.usuario),
+   para permitir logout/login sem perder a conta. */
+function saveContas() {
+  localStorage.setItem(LS.contas, JSON.stringify(state.contas));
+}
+function findConta(email) {
+  const alvo = (email || '').toLowerCase();
+  return (state.contas || []).find(c => (c.email || '').toLowerCase() === alvo) || null;
+}
+/* Insere ou atualiza a conta pelo e-mail (opcionalmente trocando um e-mail antigo). */
+function upsertConta(user, oldEmail) {
+  if (!user || !user.email) return;
+  const alvo = (oldEmail || user.email).toLowerCase();
+  state.contas = (state.contas || []).filter(c => (c.email || '').toLowerCase() !== alvo);
+  // remove também eventual duplicata do novo e-mail antes de inserir
+  state.contas = state.contas.filter(c => (c.email || '').toLowerCase() !== user.email.toLowerCase());
+  state.contas.push(clone(user));
+  saveContas();
 }
 
 /* aliases com os nomes usados em outras partes da especificação */
@@ -469,10 +498,12 @@ function updateUserStatus() {
   const logged = isUserRegistered();
   const nameEl = $id('navUserName');
   const btnAuth = $id('btnAuth');
+  const btnLogin = $id('btnLogin');
   const userMenu = $id('userMenu');
 
   if (nameEl && logged) nameEl.textContent = (state.user.nome || '').split(' ')[0];
   if (btnAuth) btnAuth.hidden = logged;        // "Criar conta" só quando deslogado
+  if (btnLogin) btnLogin.hidden = logged;      // "Entrar" só quando deslogado
   if (userMenu) userMenu.hidden = !logged;     // chip + dropdown só quando logado
 
   // Botão "Fazer cadastro" do hero vira "Minha conta" para quem já tem conta
@@ -568,6 +599,68 @@ function configurarMascaraTelefone(ids) {
   });
 }
 
+/* ── CEP / ENDEREÇO (busca automática via ViaCEP) ── */
+function aplicarMascaraCep(value) {
+  const n = String(value == null ? '' : value).replace(/\D/g, '').slice(0, 8);
+  return n.length <= 5 ? n : n.slice(0, 5) + '-' + n.slice(5);
+}
+
+function validarCep(cep) {
+  return String(cep == null ? '' : cep).replace(/\D/g, '').length === 8;
+}
+
+/* Preenche um campo (input/select) de endereço, se existir e houver valor. */
+function preencherEndereco(id, value) {
+  const el = $id(id);
+  if (!el || !value) return;
+  el.value = value;
+  el.classList.remove('input-error');
+}
+
+/* Consulta o ViaCEP e completa cidade / UF / bairro automaticamente. */
+function buscarCep(cepNum, campos, cepEl) {
+  if (cepEl._buscandoCep) return;
+  cepEl._buscandoCep = true;
+  showToast('Buscando endereço pelo CEP...', 'info');
+  fetch(`https://viacep.com.br/ws/${cepNum}/json/`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.erro) {
+        cepEl.classList.add('input-error');
+        showToast('CEP não encontrado. Verifique o número ou preencha o endereço manualmente.', 'warning');
+        return;
+      }
+      preencherEndereco(campos.cidade, data.localidade);
+      preencherEndereco(campos.uf, data.uf);
+      preencherEndereco(campos.bairro, data.bairro);
+      showToast('Endereço preenchido pelo CEP. ✅', 'success');
+      const bairroEl = $id(campos.bairro);
+      if (bairroEl && !data.bairro) bairroEl.focus(); // ViaCEP nem sempre retorna o bairro
+    })
+    .catch(() => showToast('Não foi possível buscar o CEP agora. Preencha o endereço manualmente.', 'warning'))
+    .finally(() => { cepEl._buscandoCep = false; });
+}
+
+/* Liga máscara + busca automática (ao completar 8 dígitos) a um campo de CEP. */
+function configurarBuscaCep(cepId, campos) {
+  const el = $id(cepId);
+  if (!el || el._cepBound) return;
+  el._cepBound = true;
+  el.setAttribute('maxlength', '9');
+  el.setAttribute('inputmode', 'numeric');
+  el.addEventListener('input', () => {
+    el.value = aplicarMascaraCep(el.value);
+    el.classList.remove('input-error');
+    const num = el.value.replace(/\D/g, '');
+    if (num.length === 8 && num !== el._ultimoCep) {
+      el._ultimoCep = num;
+      buscarCep(num, campos, el);
+    } else if (num.length < 8) {
+      el._ultimoCep = '';
+    }
+  });
+}
+
 /* Lista de UFs reutilizável (cadastro e edição de perfil). */
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
@@ -607,10 +700,68 @@ function optionsHtml(values, selected) {
   return values.map(v => `<option${v === selected ? ' selected' : ''}>${escapeHtml(v)}</option>`).join('');
 }
 
+/* ── DATA (dd/mm/aaaa) ──
+   O campo de nascimento é texto digitável com máscara; o valor é guardado em ISO. */
+
+/* Máscara progressiva enquanto digita: 31/12/1990. */
+function aplicarMascaraData(value) {
+  const n = String(value == null ? '' : value).replace(/\D/g, '').slice(0, 8);
+  if (n.length <= 2) return n;
+  if (n.length <= 4) return n.slice(0, 2) + '/' + n.slice(2);
+  return n.slice(0, 2) + '/' + n.slice(2, 4) + '/' + n.slice(4);
+}
+
+/* Interpreta "dd/mm/aaaa" (ou "yyyy-mm-dd" legado) e devolve um Date válido ou null. */
+function parseDataBR(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  let d, m, y, mt;
+  if ((mt = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/))) { d = +mt[1]; m = +mt[2]; y = +mt[3]; }
+  else if ((mt = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) { y = +mt[1]; m = +mt[2]; d = +mt[3]; }
+  else return null;
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const date = new Date(y, m - 1, d);
+  // rejeita datas inexistentes (ex.: 31/02 "transbordaria" para março)
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return date;
+}
+
+/* Data válida para nascimento: real, não futura e a partir de 1900. */
+function validarData(str) {
+  const d = parseDataBR(str);
+  if (!d) return false;
+  if (d > new Date()) return false;
+  if (d.getFullYear() < 1900) return false;
+  return true;
+}
+
+/* Converte "dd/mm/aaaa" para "yyyy-mm-dd" (formato de armazenamento). '' se inválida. */
+function dataParaISO(str) {
+  const d = parseDataBR(str);
+  if (!d) return '';
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/* Aplica a máscara de data em tempo real nos inputs informados (por id). */
+function configurarMascaraData(ids) {
+  (ids || []).forEach((id) => {
+    const el = $id(id);
+    if (!el || el._dataMasked) return;
+    el._dataMasked = true;
+    el.setAttribute('maxlength', '10');
+    el.setAttribute('inputmode', 'numeric');
+    el.addEventListener('input', () => {
+      el.value = aplicarMascaraData(el.value);
+      el.classList.remove('input-error');
+    });
+  });
+}
+
 function calcIdade(dataNascimento) {
-  if (!dataNascimento) return NaN;
-  const nasc = new Date(dataNascimento);
-  if (isNaN(nasc.getTime())) return NaN;
+  const nasc = parseDataBR(dataNascimento);
+  if (!nasc) return NaN;
   const hoje = new Date();
   let idade = hoje.getFullYear() - nasc.getFullYear();
   const m = hoje.getMonth() - nasc.getMonth();
@@ -636,6 +787,7 @@ function validateUserForm() {
   const moradia = get('moradia');
   const outrosAnimais = get('outrosAnimais');
   const jaAdotou = get('jaAdotou');
+  const cep = get('cep');
   const senha = get('senha');
   const confirmaSenha = get('confirmaSenha');
   const termos = f.elements['termos'].checked;
@@ -643,9 +795,11 @@ function validateUserForm() {
   const cpfValido = validarCPF(cpf);
   const emailValido = validarEmail(email);
   const telValido = validarTelefone(telefone);
+  const dataValida = validarData(nascimento);
   if (f.elements['cpf']) f.elements['cpf'].classList.toggle('input-error', !!cpf && !cpfValido);
   if (f.elements['email']) f.elements['email'].classList.toggle('input-error', !!email && !emailValido);
   if (f.elements['telefone']) f.elements['telefone'].classList.toggle('input-error', !!telefone && !telValido);
+  if (f.elements['nascimento']) f.elements['nascimento'].classList.toggle('input-error', !!nascimento && !dataValida);
 
   if (!nome) errors.push('Informe o nome completo.');
   if (!cpf) errors.push('Informe o CPF.');
@@ -660,13 +814,14 @@ function validateUserForm() {
   if (!outrosAnimais) errors.push('Informe se possui outros animais.');
   if (!jaAdotou) errors.push('Informe se já adotou antes.');
 
-  const idade = calcIdade(nascimento);
-  if (!nascimento || isNaN(idade)) errors.push('Informe a data de nascimento.');
+  if (!nascimento) errors.push('Informe a data de nascimento.');
+  else if (!dataValida) errors.push('Data de nascimento inválida. Use o formato dd/mm/aaaa.');
   // Obs.: a idade mínima de 21 anos é exigida para DEMONSTRAR INTERESSE (ver
   // usuarioPodeEnviarInteresse). O cadastro em si é permitido (ex.: para doar).
 
   if (senha.length < 6) errors.push('A senha deve ter no mínimo 6 caracteres.');
   if (senha !== confirmaSenha) errors.push('A confirmação de senha não confere.');
+  if (emailValido && findConta(email)) errors.push('Este e-mail já está cadastrado. Faça login para entrar na sua conta.');
   if (!termos) errors.push('É preciso aceitar os termos de adoção responsável.');
 
   return { valid: errors.length === 0, message: errors[0] || '', errors };
@@ -694,19 +849,22 @@ function handleUserSubmit(event) {
     cpfLimpo: limparCPF(get('cpf')),
     email: get('email'),
     telefone: aplicarMascaraTelefone(get('telefone')),
-    nascimento: get('nascimento'),
+    nascimento: dataParaISO(get('nascimento')),
     idade: isNaN(idadeUser) ? null : idadeUser,
     maior21: !isNaN(idadeUser) && idadeUser >= IDADE_MINIMA_ADOCAO,
+    cep: aplicarMascaraCep(get('cep')),
     cidade: get('cidade'),
     uf: get('uf'),
     bairro: get('bairro'),
     moradia: get('moradia'),
     outrosAnimais: get('outrosAnimais'),
     jaAdotou: get('jaAdotou'),
+    senha: get('senha'),
     aceitaTermos: f.elements['termos'] ? f.elements['termos'].checked : true,
     cadastradoEm: new Date().toISOString()
   };
   saveUser();
+  upsertConta(state.user);   // registra a conta para permitir login depois
   updateUserStatus();
   if (state.user.maior21) {
     showToast(`Cadastro concluído! Bem-vindo(a), ${state.user.nome.split(' ')[0]} 🐾`, 'success');
@@ -723,11 +881,33 @@ function handleUserSubmit(event) {
 /* ===========================================================
    6. BUSCA E FILTROS
 =========================================================== */
+const REGION_RADIUS_KM = 500; // raio que define a "região" perto de você
+
+/* Distância em km entre dois pontos [lat, lng] (fórmula de Haversine). */
+function haversineKm(a, b) {
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLng = toRad(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/* Origem do usuário: localização do navegador (se concedida) ou a cidade cadastrada. */
+function userOrigin() {
+  if (state.geo) return [state.geo.lat, state.geo.lng];
+  if (isUserRegistered()) return cityLatLng(state.user.cidade, state.user.uf);
+  return null;
+}
+
+/* O pet está na região do usuário? Sem origem conhecida, não esconde nada (mostra todos). */
 function isNearUser(pet) {
-  if (!isUserRegistered()) return false;
-  const sameCity = (pet.cidade || '').toLowerCase() === (state.user.cidade || '').toLowerCase();
-  const sameUf = (pet.uf || '').toLowerCase() === (state.user.uf || '').toLowerCase();
-  return sameCity && sameUf;
+  const origin = userOrigin();
+  if (!origin) return true;
+  const ll = cityLatLng(pet.cidade, pet.uf);
+  if (!ll) return false;
+  return haversineKm(origin, ll) <= REGION_RADIUS_KM;
 }
 
 function matchesSearch(pet, term) {
@@ -770,13 +950,38 @@ function setActiveFilter(filterName) {
     chip.classList.toggle('active', chip.dataset.filter === filterName);
   });
 
-  if (filterName === 'perto' && !isUserRegistered()) {
-    showToast('Cadastre sua cidade para encontrar pets perto de você.', 'info');
-  }
-
   renderPetLists();
   renderCurrentPet();
-  renderMap(true);
+
+  // O mapa vive dentro do botão "Perto de você": só aparece com esse filtro ativo.
+  const mapEl = $id('mapa');
+  const isPerto = filterName === 'perto';
+  if (mapEl) mapEl.hidden = !isPerto;
+
+  if (isPerto) {
+    ensureGeoForRegion();   // tenta a localização real para mostrar os pets da sua região
+    renderMap(true);
+    // Leva o usuário direto para o mapa e recalcula o tamanho (saiu do estado oculto).
+    if (mapEl) {
+      mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (_map) setTimeout(() => _map.invalidateSize(), 350);
+    }
+  }
+}
+
+/* Pede a localização do navegador (uma vez) para filtrar a lista pela região do usuário. */
+function ensureGeoForRegion() {
+  if (state.geo || !navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      state.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      renderPetLists();
+      renderCurrentPet();
+      if (state.activeFilter === 'perto') renderMap(true); // re-centra na sua localização
+    },
+    () => {}, // permissão negada: mantém o fallback (cidade cadastrada ou todos)
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
 }
 
 /* ===========================================================
@@ -833,13 +1038,13 @@ function renderCurrentPet() {
   if (queue.length === 0) {
     if (actions) actions.style.display = 'none';
     state.currentExploreId = null;
-    const semUser = state.activeFilter === 'perto' && !isUserRegistered();
+    const semRegiao = state.activeFilter === 'perto' && userOrigin();
     stage.innerHTML = `
       <div class="explore-empty">
         <div class="explore-empty-emoji">🐾</div>
-        <h3>${semUser ? 'Cadastre sua cidade' : 'Nenhum pet por aqui'}</h3>
-        <p>${semUser
-          ? 'Faça seu cadastro para encontrar pets perto de você.'
+        <h3>${semRegiao ? 'Nenhum pet na sua região' : 'Nenhum pet por aqui'}</h3>
+        <p>${semRegiao
+          ? 'Não há pets disponíveis perto de você no momento. Tente ampliar a busca ou ver todos os pets.'
           : 'Não há pets disponíveis para os filtros atuais. Tente outra busca, mude os filtros ou cadastre um novo pet.'}</p>
         <button class="btn-primary" type="button" data-reset-filter>Ver todos os pets</button>
       </div>`;
@@ -1023,9 +1228,9 @@ function renderInto(container, pets, emptyMsg) {
 
 function emptyListMsg(tipo) {
   if (state.activeFilter === 'perto') {
-    return isUserRegistered()
-      ? 'Nenhum pet encontrado na sua cidade. Tente remover o filtro ou buscar pelo estado.'
-      : 'Cadastre sua cidade para encontrar pets perto de você.';
+    return userOrigin()
+      ? `Nenhum pet ${tipo} na sua região no momento.`
+      : `Nenhum pet ${tipo} para os filtros atuais.`;
   }
   return `Nenhum pet ${tipo} para os filtros atuais.`;
 }
@@ -1166,6 +1371,99 @@ function handleImagePreview(event) {
   reader.readAsDataURL(file);
 }
 
+/* Preenche o formulário de pet com os dados de um pet existente (modo edição). */
+function prefillPetForm(pet) {
+  const f = $id('petForm');
+  if (!f) return;
+  const fm = pet.fichaMedica || {};
+  const resp = pet.responsavel || {};
+  const doa = pet.doacao || {};
+
+  const set = (name, value) => { if (f.elements[name]) f.elements[name].value = (value == null ? '' : value); };
+  const setSel = (name, value) => {
+    const el = f.elements[name];
+    if (!el) return;
+    const v = (value == null ? '' : String(value));
+    // garante a opção (ex.: status "Adotado" não existe no formulário de cadastro)
+    if (v && !Array.from(el.options).some(o => o.value === v)) el.add(new Option(v, v));
+    el.value = v;
+  };
+  const setChk = (name, on) => { if (f.elements[name]) f.elements[name].checked = !!on; };
+
+  set('responsavelNome', resp.nome);
+  set('responsavelTelefone', resp.telefone);
+  setSel('responsavelTipo', resp.tipo);
+
+  setSel('tipoCadastro', doa.tipo === 'Filhotes/Ninhada' ? 'Filhotes/Ninhada' : 'Pet individual');
+  toggleNinhadaFields();
+  if (doa.tipo === 'Filhotes/Ninhada') set('quantidade', doa.quantidade);
+
+  set('nome', pet.nome);
+  setSel('especie', pet.especie);
+  updateBreedOptions(pet.especie);
+  setSel('raca', pet.raca);
+  set('idade', pet.idade);
+  set('idadeMeses', pet.idadeMeses);
+  setSel('sexo', pet.sexo);
+  set('cidade', pet.cidade);
+  setSel('uf', pet.uf);
+  set('bairro', pet.bairro);
+  setSel('status', pet.status);
+  set('descricao', pet.descricao);
+  set('temperamento', (pet.temperamento || []).join(', '));
+  set('larIdeal', (pet.larIdeal || []).join(', '));
+
+  // A imagem atual já vale como válida; mostra o preview (não exige novo upload).
+  state.pendingImage = pet.imagem || '';
+  const box = $id('imagePreview');
+  const img = $id('imagePreviewImg');
+  if (state.pendingImage && box && img) { img.src = state.pendingImage; box.hidden = false; }
+
+  setSel('leishmaniose', fm.leishmaniose);
+  set('vacinaPrincipal', fm.vacinaPrincipal);
+  set('condicaoEspecial', fm.condicaoEspecial);
+  setChk('vermifugo', fm.vermifugo);
+  setChk('v8v10', fm.v8v10);
+  setChk('antirrabica', fm.antirrabica);
+  setChk('gripeCanina', fm.gripeCanina);
+  setChk('giardia', fm.giardia);
+  setChk('v4v5', fm.v4v5);
+  setChk('felv', fm.felv);
+  setChk('castrado', fm.castrado);
+  set('observacoes', fm.observacoes);
+
+  setChk('declaroResponsavel', true); // já é o responsável pelo pet que cadastrou
+}
+
+/* Se a URL tiver ?edit=<id>, entra em modo edição do formulário de pet. */
+function initPetEditMode() {
+  const petForm = $id('petForm');
+  if (!petForm) return;
+
+  const editId = Number(new URLSearchParams(window.location.search).get('edit'));
+  if (!editId) return;
+
+  if (!isUserRegistered()) { showToast('Faça login para editar um pet.', 'warning'); return; }
+
+  const pet = getPet(editId);
+  if (!pet) { showToast('Pet não encontrado.', 'error'); return; }
+  if (pet.cadastradoPorEmail !== state.user.email) {
+    showToast('Você só pode editar pets que você cadastrou.', 'warning');
+    return;
+  }
+
+  state.editingPetId = pet.id;
+  prefillPetForm(pet);
+
+  // Ajusta a UI para o modo edição.
+  const title = document.querySelector('.page-title');
+  if (title) title.textContent = `Editar ${pet.nome}`;
+  const lead = document.querySelector('.page-lead');
+  if (lead) lead.textContent = 'Atualize as informações do pet. As mudanças aparecem na hora na listagem e no mapa.';
+  const submitBtn = petForm.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.textContent = 'Salvar alterações 💾';
+}
+
 function validatePetForm() {
   const f = $id('petForm');
   const get = (name) => (f.elements[name] ? f.elements[name].value.trim() : '');
@@ -1226,14 +1524,18 @@ function handlePetSubmit(event) {
   const isNinhada = get('tipoCadastro') === 'Filhotes/Ninhada';
 
   const idadeMeses = Number(get('idadeMeses'));
-  const novoId = state.pets.reduce((max, p) => Math.max(max, p.id), 0) + 1;
+  const editing = state.editingPetId != null;
+  const existing = editing ? getPet(state.editingPetId) : null;
+  const novoId = editing ? state.editingPetId
+                         : state.pets.reduce((max, p) => Math.max(max, p.id), 0) + 1;
 
   const temperamento = get('temperamento') ? get('temperamento').split(',').map(s => s.trim()).filter(Boolean) : [];
   const larIdeal = get('larIdeal') ? get('larIdeal').split(',').map(s => s.trim()).filter(Boolean) : [];
 
   const pet = {
     id: novoId,
-    cadastradoPorEmail: isUserRegistered() ? state.user.email : '',
+    cadastradoPorEmail: existing ? existing.cadastradoPorEmail
+                                 : (isUserRegistered() ? state.user.email : ''),
     nome: get('nome'),
     especie: get('especie'),
     raca: get('raca'),
@@ -1274,7 +1576,11 @@ function handlePetSubmit(event) {
     }
   };
 
-  state.pets.push(pet);
+  if (editing && existing) {
+    Object.assign(existing, pet); // preserva a posição no array, atualiza os campos
+  } else {
+    state.pets.push(pet);
+  }
   savePets();
 
   f.reset();
@@ -1282,14 +1588,16 @@ function handlePetSubmit(event) {
   $id('imagePreview').hidden = true;
   updateBreedOptions('');
   toggleNinhadaFields();
+  state.editingPetId = null;
 
-  showToast(`${pet.nome} foi cadastrado(a) com sucesso! 🐾`, 'success');
+  showToast(`${pet.nome} foi ${editing ? 'atualizado(a)' : 'cadastrado(a)'} com sucesso! ${editing ? '💾' : '🐾'}`, 'success');
 
-  // atualiza a tela atual (caso o form esteja na mesma página) e vai para a listagem
+  // atualiza a tela atual (caso o form esteja na mesma página) e redireciona
   renderCounters();
   renderPetLists();
   renderCurrentPet();
-  setTimeout(() => { window.location.href = 'index.html#listagem'; }, 1000);
+  const destino = editing ? 'perfil.html' : 'index.html#listagem';
+  setTimeout(() => { window.location.href = destino; }, 1000);
 }
 
 /* ===========================================================
@@ -1572,8 +1880,9 @@ function ownedCardHtml(pet) {
           <span class="k">Interessados (${interessados.length})</span>
           <ul>${lista}</ul>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div class="pet-card-actions">
           <button class="btn-detail" type="button" data-id="${pet.id}">Ver detalhes</button>
+          <a class="btn-remove btn-edit" href="cadastrar-pet.html?edit=${pet.id}">✏️ Editar</a>
           <button class="btn-remove" type="button" data-remove-pet="${pet.id}">Remover</button>
         </div>
       </div>
@@ -1586,6 +1895,39 @@ function logoutUser() {
   updateUserStatus();
   showToast('Você saiu da sua conta.', 'info');
   setTimeout(() => { window.location.href = 'index.html'; }, 800);
+}
+
+function handleLoginSubmit(event) {
+  event.preventDefault();
+  const f = event.target;
+  const errBox = $id('loginFormError');
+  const get = (name) => (f.elements[name] ? f.elements[name].value.trim() : '');
+
+  const email = get('email');
+  const senha = get('senha');
+
+  if (!validarEmail(email) || !senha) {
+    const msg = 'Informe e-mail e senha para entrar.';
+    if (errBox) errBox.textContent = msg;
+    showToast(msg, 'error');
+    return;
+  }
+
+  const conta = findConta(email);
+  if (!conta || conta.senha !== senha) {
+    const msg = 'E-mail ou senha incorretos.';
+    if (errBox) errBox.textContent = msg;
+    showToast(msg, 'error');
+    if (f.elements['senha']) f.elements['senha'].classList.add('input-error');
+    return;
+  }
+
+  if (errBox) errBox.textContent = '';
+  state.user = clone(conta);
+  saveUser();
+  updateUserStatus();
+  showToast(`Bem-vindo(a) de volta, ${(state.user.nome || '').split(' ')[0]}! 🐾`, 'success');
+  setTimeout(() => { window.location.href = 'perfil.html'; }, 900);
 }
 
 function refusedCardHtml(pet) {
@@ -1657,7 +1999,11 @@ function accountEditFormHtml(u) {
       </div>
       <div class="form-group">
         <label for="acc_nascimento">Data de nascimento *</label>
-        <input type="date" id="acc_nascimento" name="nascimento" value="${escapeHtml(u.nascimento || '')}">
+        <input type="text" id="acc_nascimento" name="nascimento" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="bday" value="${escapeHtml(u.nascimento ? formatDataBR(u.nascimento) : '')}">
+      </div>
+      <div class="form-group">
+        <label for="acc_cep">CEP <small>(preenche o endereço)</small></label>
+        <input type="text" id="acc_cep" name="cep" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code" value="${escapeHtml(u.cep || '')}">
       </div>
       <div class="form-group">
         <label for="acc_cidade">Cidade *</label>
@@ -1701,7 +2047,7 @@ function accountEditFormHtml(u) {
 
     <label class="check-row">
       <input type="checkbox" id="acc_termos" name="termos"${u.aceitaTermos !== false ? ' checked' : ''}>
-      <span>Confirmo que aceito os <a href="index.html#requisitos">termos de adoção responsável</a>.</span>
+      <span>Confirmo que aceito os <a href="termos.html" target="_blank" rel="noopener">termos de adoção responsável</a>.</span>
     </label>
 
     <div class="form-error" id="accountEditError" role="alert"></div>
@@ -1719,8 +2065,10 @@ function abrirEdicaoDados() {
   if (view) view.hidden = true;
   if (btn) btn.hidden = true;
   if (form) form.hidden = false;
-  configurarMascaraCPF(['acc_cpf']);          // máscara de CPF na edição
-  configurarMascaraTelefone(['acc_telefone']); // máscara de telefone na edição
+  configurarMascaraCPF(['acc_cpf']);            // máscara de CPF na edição
+  configurarMascaraTelefone(['acc_telefone']);  // máscara de telefone na edição
+  configurarMascaraData(['acc_nascimento']);    // máscara de data na edição
+  configurarBuscaCep('acc_cep', { cidade: 'acc_cidade', uf: 'acc_uf', bairro: 'acc_bairro' }); // CEP → endereço
 }
 
 function cancelarEdicaoDados() {
@@ -1752,6 +2100,7 @@ function salvarEdicaoDados(event) {
   const moradia = get('moradia');
   const outrosAnimais = get('outrosAnimais');
   const jaAdotou = get('jaAdotou');
+  const cep = get('cep');
   const tipoCadastro = get('tipoCadastro');
   const termos = f.elements['termos'] ? f.elements['termos'].checked : true;
   const senha = get('senha');
@@ -1760,17 +2109,19 @@ function salvarEdicaoDados(event) {
   const cpfValido = validarCPF(cpf);
   const emailValido = validarEmail(email);
   const telValido = validarTelefone(telefone);
+  const dataValida = validarData(nascimento);
   if (f.elements['cpf']) f.elements['cpf'].classList.toggle('input-error', !cpfValido);
   if (f.elements['email']) f.elements['email'].classList.toggle('input-error', !emailValido);
   if (f.elements['telefone']) f.elements['telefone'].classList.toggle('input-error', !telValido);
+  if (f.elements['nascimento']) f.elements['nascimento'].classList.toggle('input-error', !!nascimento && !dataValida);
 
   if (!nome) errors.push('Informe o nome completo.');
   if (!cpfValido) errors.push('CPF inválido. Não foi possível salvar as alterações.');
   if (!emailValido) errors.push('Informe um e-mail válido.');
   if (!telefone) errors.push('Informe o telefone / WhatsApp.');
   else if (!telValido) errors.push('Telefone inválido. Use DDD + número, ex.: (31) 99999-9999.');
-  const idade = calcIdade(nascimento);
-  if (!nascimento || isNaN(idade)) errors.push('Informe a data de nascimento.');
+  if (!nascimento) errors.push('Informe a data de nascimento.');
+  else if (!dataValida) errors.push('Data de nascimento inválida. Use o formato dd/mm/aaaa.');
   if (!cidade) errors.push('Informe a cidade.');
   if (!uf) errors.push('Selecione a UF.');
   if (!bairro) errors.push('Informe o bairro.');
@@ -1792,6 +2143,7 @@ function salvarEdicaoDados(event) {
 
   // mantém vínculos se o e-mail mudar (não apaga pets cadastrados / interessados)
   const oldEmail = state.user ? state.user.email : '';
+  const idade = calcIdade(nascimento);
 
   state.user = Object.assign({}, state.user, {
     tipoCadastro: tipoCadastro || state.user.tipoCadastro,
@@ -1800,9 +2152,10 @@ function salvarEdicaoDados(event) {
     cpfLimpo: limparCPF(cpf),
     email: email,
     telefone: aplicarMascaraTelefone(telefone),
-    nascimento: nascimento,
+    nascimento: dataParaISO(nascimento),
     idade: isNaN(idade) ? null : idade,
     maior21: !isNaN(idade) && idade >= IDADE_MINIMA_ADOCAO,
+    cep: aplicarMascaraCep(cep),
     cidade: cidade,
     uf: uf,
     bairro: bairro,
@@ -1821,6 +2174,7 @@ function salvarEdicaoDados(event) {
   }
 
   saveUser();
+  upsertConta(state.user, oldEmail);   // mantém a conta de login em sincronia
   updateUserStatus();
   renderProfile();            // volta para a visualização já atualizada
   showToast('Dados pessoais atualizados com sucesso.', 'success');
@@ -1861,6 +2215,7 @@ function renderProfile() {
     profileInfoItem('Telefone / WhatsApp', u.telefone),
     profileInfoItem('Nascimento', formatDataBR(u.nascimento)),
     profileInfoItem('Idade', isNaN(idade) ? '—' : idade + ' anos'),
+    profileInfoItem('CEP', u.cep || '—'),
     profileInfoItem('Cidade / UF', `${u.cidade}/${u.uf}`),
     profileInfoItem('Bairro', u.bairro),
     profileInfoItem('Tipo de moradia', u.moradia),
@@ -1979,7 +2334,11 @@ function renderMap(fit) {
   _mapMarkers.clearLayers();
   _userMarker = null;
 
-  const pets = filterPets();
+  // O mapa mostra TODOS os animais (a restrição "mesma cidade" do filtro "perto"
+  // vale só para a lista/explorar; aqui ela esvaziaria o mapa). Segue a busca.
+  const term = normalizarTexto(state.searchTerm);
+  const mapFilter = state.activeFilter === 'perto' ? 'todos' : state.activeFilter;
+  const pets = state.pets.filter(pet => matchesSearch(pet, term) && matchesFilter(pet, mapFilter));
   const bounds = [];
 
   pets.forEach(pet => {
@@ -1999,35 +2358,62 @@ function renderMap(fit) {
 
   if (!fit) return;
 
-  // "Perto de você": centraliza na cidade do usuário cadastrado
-  if (state.activeFilter === 'perto' && isUserRegistered()) {
-    const me = cityLatLng(state.user.cidade, state.user.uf);
-    if (me) { _map.setView(me, 9); addUserMarker(me); return; }
+  // "Perto de você": centraliza na localização real (geo) ou na cidade cadastrada
+  if (state.activeFilter === 'perto') {
+    const origin = userOrigin();
+    if (origin) {
+      _map.setView(origin, state.geo ? 11 : 9);
+      addUserMarker(origin, state.geo ? '📍 Você está aqui' : undefined);
+      return;
+    }
   }
   if (bounds.length === 1) _map.setView(bounds[0], 9);
   else if (bounds.length > 1) _map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
 }
 
-function addUserMarker(latlng) {
-  if (!_map) return;
+function addUserMarker(latlng, label) {
+  if (!_map || !_mapMarkers) return;
+  if (_userMarker) _mapMarkers.removeLayer(_userMarker); // evita marcadores duplicados
   _userMarker = L.circleMarker(latlng, {
     radius: 11, color: '#D9623D', weight: 2, fillColor: '#F4845F', fillOpacity: 0.55
   }).addTo(_mapMarkers);
-  _userMarker.bindPopup('📍 Você está aqui: ' + escapeHtml(state.user.cidade) + '/' + escapeHtml(state.user.uf));
+  _userMarker.bindPopup(label || ('📍 Você está aqui: ' + escapeHtml(state.user.cidade) + '/' + escapeHtml(state.user.uf)));
 }
 
 function locateMeOnMap() {
   if (!_map) { showToast('O mapa ainda está carregando.', 'info'); return; }
-  if (!isUserRegistered()) {
-    showToast('Cadastre sua cidade para encontrar pets perto de você.', 'info');
-    return;
-  }
-  const me = cityLatLng(state.user.cidade, state.user.uf);
-  if (!me) { showToast('Não encontramos a localização da sua cidade no mapa.', 'warning'); return; }
-  _map.setView(me, 10);
-  if (!_userMarker) addUserMarker(me);
-  _userMarker.openPopup();
-  showToast(`Mostrando pets perto de ${state.user.cidade}/${state.user.uf}. 📍`, 'success');
+
+  // Fallback: centraliza na cidade cadastrada (quando a geolocalização não está disponível).
+  const fallbackToCity = () => {
+    if (!isUserRegistered()) {
+      showToast('Não foi possível obter sua localização. Cadastre sua cidade para centralizar o mapa.', 'warning');
+      return;
+    }
+    const me = cityLatLng(state.user.cidade, state.user.uf);
+    if (!me) { showToast('Não encontramos a localização da sua cidade no mapa.', 'warning'); return; }
+    _map.setView(me, 10);
+    addUserMarker(me);
+    _userMarker.openPopup();
+    showToast(`Mostrando pets perto de ${state.user.cidade}/${state.user.uf}. 📍`, 'success');
+  };
+
+  if (!navigator.geolocation) { fallbackToCity(); return; }
+
+  // Usa a localização real do navegador (com permissão do usuário).
+  showToast('Obtendo sua localização...', 'info');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      state.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      renderPetLists();   // a lista passa a refletir os pets da sua região
+      renderCurrentPet();
+      _map.setView([state.geo.lat, state.geo.lng], 12);
+      addUserMarker([state.geo.lat, state.geo.lng], '📍 Você está aqui');
+      _userMarker.openPopup();
+      showToast('Centralizado na sua localização atual. 📍', 'success');
+    },
+    () => fallbackToCity(), // permissão negada/indisponível → cai para a cidade cadastrada
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
 }
 
 /* ===========================================================
@@ -2044,7 +2430,8 @@ function initApp() {
   renderProfile();
 
   bindEvents();
-  initMap();   // mapa interativo (só age se a página tiver #petsMap)
+  initMap();          // mapa interativo (só age se a página tiver #petsMap)
+  initPetEditMode();  // entra em modo edição se a URL tiver ?edit=<id>
 
   // Página de cadastro: quem JÁ tem conta é levado para "Minha conta".
   if ($id('userForm') && isUserRegistered()) {
@@ -2062,6 +2449,13 @@ function initApp() {
     }
     showToast('Você já tem cadastro. Indo para Minha conta.', 'info');
     setTimeout(() => { window.location.href = 'perfil.html'; }, 1100);
+    return;
+  }
+
+  // Página de login: quem JÁ está logado é levado para "Minha conta".
+  if ($id('loginForm') && isUserRegistered()) {
+    showToast('Você já está logado. Indo para Minha conta.', 'info');
+    setTimeout(() => { window.location.href = 'perfil.html'; }, 900);
     return;
   }
 
@@ -2131,6 +2525,12 @@ function bindEvents() {
   if (userForm) userForm.addEventListener('submit', handleUserSubmit);
   configurarMascaraCPF(['u_cpf']);                              // máscara de CPF no cadastro
   configurarMascaraTelefone(['u_telefone', 'p_telefone']);     // máscara de telefone (cadastro e cadastro de pet)
+  configurarMascaraData(['u_nascimento']);                     // máscara de data no cadastro
+  configurarBuscaCep('u_cep', { cidade: 'u_cidade', uf: 'u_uf', bairro: 'u_bairro' }); // CEP → endereço
+
+  /* Formulário de login */
+  const loginForm = $id('loginForm');
+  if (loginForm) loginForm.addEventListener('submit', handleLoginSubmit);
 
   /* Formulário de pet */
   const petForm = $id('petForm');
