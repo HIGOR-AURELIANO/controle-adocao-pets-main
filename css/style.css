@@ -1276,6 +1276,53 @@ a { color: var(--verde-claro); }
 .step-desc { font-size: 0.84rem; color: rgba(247, 243, 236, 0.6); line-height: 1.6; }
 
 /* ─────────────────────────────────────────
+   MAPA (perto de você)
+───────────────────────────────────────── */
+.map-section { padding: 60px 40px; background: var(--bege); }
+.map-inner { max-width: var(--maxw); margin: 0 auto; }
+.map-lead { color: var(--cinza); max-width: 680px; margin: 6px 0 18px; font-size: 0.95rem; }
+.map-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.btn-locate {
+  background: var(--verde); color: #fff; border: none;
+  padding: 11px 20px; border-radius: 100px;
+  font-family: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+  transition: background 0.18s, transform 0.18s;
+}
+.btn-locate:hover { background: var(--verde-medio); transform: translateY(-2px); }
+.map-count { font-size: 0.85rem; color: var(--cinza); font-weight: 600; }
+
+.pets-map {
+  height: 460px;
+  width: 100%;
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;            /* cria contexto de empilhamento: mantém o mapa abaixo da topbar fixa */
+}
+.leaflet-container { font-family: inherit; }
+
+/* Popup do pet no mapa */
+.map-popup { display: flex; gap: 10px; align-items: center; }
+.map-popup-img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; }
+.map-popup-body { display: flex; flex-direction: column; gap: 3px; }
+.map-popup-name { font-family: 'Fraunces', serif; font-size: 1rem; color: var(--verde); }
+.map-popup-sub { font-size: 0.78rem; color: var(--cinza); }
+.map-popup .pet-card-badge { align-self: flex-start; margin: 2px 0; }
+.map-popup-btn {
+  margin-top: 4px; align-self: flex-start;
+  background: var(--laranja); color: #fff; border: none;
+  padding: 6px 14px; border-radius: 100px;
+  font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+}
+.map-popup-btn:hover { background: var(--laranja-escuro); }
+
+@media (max-width: 600px) {
+  .map-section { padding: 44px 20px; }
+  .pets-map { height: 360px; }
+}
+
+/* ─────────────────────────────────────────
    REQUISITOS
 ───────────────────────────────────────── */
 .reqs-section { padding: 70px 40px; }

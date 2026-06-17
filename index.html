@@ -7,6 +7,8 @@
   <meta name="description" content="meu4patas conecta animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.">
   <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet (biblioteca open-source de mapa interativo) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="css/style.css?v=logo-final-1">
 </head>
 <body>
@@ -54,7 +56,7 @@
       <p>O <strong>meu4patas</strong> conecta animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade. Pessoas físicas, ONGs e lares temporários, juntos por um mesmo propósito.</p>
       <div class="hero-actions">
         <a href="#explorar" class="btn-primary">Ver pets disponíveis</a>
-        <a href="cadastro.html" class="btn-ghost">Fazer cadastro</a>
+        <a href="cadastro.html" class="btn-ghost" id="heroCadastroLink">Fazer cadastro</a>
         <a href="cadastrar-pet.html" class="btn-ghost">Cadastrar pet para doação</a>
       </div>
       <div class="hero-stats">
@@ -119,6 +121,20 @@
       <button class="explore-btn explore-btn--refuse" id="btnRefuse" title="Não tenho interesse">✕ <span>Não tenho interesse</span></button>
       <button class="explore-btn explore-btn--details" id="btnDetails" title="Ver detalhes">ⓘ <span>Ver detalhes</span></button>
       <button class="explore-btn explore-btn--interest" id="btnInterest" title="Tenho interesse">💛 <span>Tenho interesse</span></button>
+    </div>
+  </section>
+
+  <!-- ───────────── MAPA / PERTO DE VOCÊ ───────────── -->
+  <section class="map-section" id="mapa">
+    <div class="map-inner">
+      <p class="section-eyebrow">📍 Perto de você</p>
+      <h2 class="section-title">Pets no mapa</h2>
+      <p class="map-lead">Veja onde estão os animais e encontre um amigo perto de você. O mapa acompanha a busca e os filtros acima.</p>
+      <div class="map-bar">
+        <button class="btn-locate" id="btnLocateMe" type="button">📍 Centralizar perto de mim</button>
+        <span class="map-count" id="mapCount"></span>
+      </div>
+      <div id="petsMap" class="pets-map" role="application" aria-label="Mapa com a localização dos pets"></div>
     </div>
   </section>
 
@@ -246,6 +262,7 @@
   <!-- ───────────── TOAST ───────────── -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/script.js?v=logo-final-1"></script>
 </body>
 </html>
