@@ -1138,6 +1138,50 @@ a { color: var(--verde-claro); }
   border-color: var(--verde-claro);
   box-shadow: 0 0 0 3px rgba(74, 140, 101, 0.18);
 }
+.interest-status-select:disabled { opacity: 0.6; cursor: default; }
+
+/* Dados do cadastro da pessoa interessada */
+.interest-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.8rem;
+  color: var(--grafite);
+  background: var(--creme);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.interest-info span { line-height: 1.35; }
+
+/* Botão de confirmar a doação */
+.btn-confirm-donation {
+  margin-top: 2px;
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--status-ok);
+  border: none;
+  border-radius: 9px;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.btn-confirm-donation:hover { background: #25885a; transform: translateY(-1px); }
+
+/* Item destacado quando a pessoa foi escolhida como adotante */
+.interest-item.is-chosen {
+  border-color: var(--status-ok);
+  box-shadow: 0 0 0 2px rgba(46, 158, 107, 0.18);
+}
+.interest-adopted {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--status-ok);
+}
 
 /* ── Notificação de interesses aguardando andamento ── */
 .profile-notification {

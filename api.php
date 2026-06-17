@@ -997,6 +997,64 @@ try {
             ok(null, 'Andamento da adoção atualizado.');
         }
 
+        /* ─── CONFIRMAR DOAÇÃO (responsável escolhe o adotante) ─── */
+        case 'confirmar_doacao': {
+            $s = sessaoAtiva();
+            $pdo = getPDO();
+            $interesseId = (int)input('interesse_id');
+            if (!$interesseId) err('Interesse inválido.');
+
+            /* Confirmar que o interesse pertence a um pet do usuário logado */
+            $stmt = $pdo->prepare("
+                SELECT i.id, i.pet_id, i.usuario_id,
+                       p.usuario_doador_id, p.status,
+                       u.nome_completo, u.telefone, u.cidade, u.uf, u.bairro, u.tipo_moradia
+                FROM interesses i
+                JOIN pets p     ON p.id = i.pet_id
+                JOIN usuarios u ON u.id = i.usuario_id
+                WHERE i.id = ?
+            ");
+            $stmt->execute([$interesseId]);
+            $row = $stmt->fetch();
+            if (!$row) err('Interesse não encontrado.', 404);
+            if ((int)$row['usuario_doador_id'] !== (int)$s['id'])
+                err('Você só pode confirmar a doação dos pets que cadastrou.', 403);
+            if ($row['status'] === 'Adotado')
+                err('Este pet já foi marcado como adotado.');
+
+            $petId = (int)$row['pet_id'];
+            $pdo->beginTransaction();
+            try {
+                /* Registra o adotante a partir do cadastro da pessoa interessada */
+                $ins = $pdo->prepare("
+                    INSERT INTO adotantes (usuario_id, nome_completo, telefone, cidade, uf, bairro, tipo_moradia)
+                    VALUES (?,?,?,?,?,?,?)
+                ");
+                $ins->execute([
+                    (int)$row['usuario_id'], $row['nome_completo'], $row['telefone'],
+                    $row['cidade'], $row['uf'], $row['bairro'], $row['tipo_moradia']
+                ]);
+                $adotanteId = (int)$pdo->lastInsertId();
+
+                /* Marca o pet como adotado e vincula o adotante */
+                $pdo->prepare("UPDATE pets SET status='Adotado', adotante_id=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?")
+                    ->execute([$adotanteId, $petId]);
+
+                /* Conclui o interesse escolhido e recusa os demais do mesmo pet */
+                $pdo->prepare("UPDATE interesses SET status='Adoção concluída' WHERE id=?")
+                    ->execute([$interesseId]);
+                $pdo->prepare("UPDATE interesses SET status='Recusado' WHERE pet_id=? AND id<>?")
+                    ->execute([$petId, $interesseId]);
+
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                throw $e;
+            }
+
+            ok(null, 'Doação confirmada! O pet foi marcado como adotado.');
+        }
+
         /* ─── REGISTRAR RECUSA ─── */
         case 'registrar_recusa': {
             $s = sessaoAtiva();
@@ -1043,13 +1101,19 @@ try {
             $stmt->execute([$s['id']]);
             $pets = $stmt->fetchAll();
 
-            /* Para cada pet, buscar interessados */
+            /* Para cada pet, buscar interessados com os dados do cadastro */
             foreach ($pets as &$pet) {
                 $si = $pdo->prepare("
-                    SELECT i.*,u.nome_completo,u.email,u.telefone
+                    SELECT i.*,
+                           u.nome_completo, u.email, u.telefone,
+                           u.cidade, u.uf, u.bairro,
+                           u.idade, u.data_nascimento, u.maior21,
+                           u.tipo_moradia, u.possui_outros_animais,
+                           u.ja_adotou_antes, u.aceita_termos
                     FROM interesses i
                     JOIN usuarios u ON u.id=i.usuario_id
                     WHERE i.pet_id=?
+                    ORDER BY i.criado_em ASC
                 ");
                 $si->execute([$pet['id']]);
                 $pet['interessados'] = $si->fetchAll();
