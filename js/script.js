@@ -216,7 +216,17 @@ async function loadUserDataFromAPI() {
           email: r.email || '',
           mensagem: r.mensagem || '',
           status: r.status || 'Interesse enviado',
-          criadoEm: r.criado_em || ''
+          criadoEm: r.criado_em || '',
+          // dados do cadastro da pessoa interessada
+          cidade: r.cidade || '',
+          uf: r.uf || '',
+          bairro: r.bairro || '',
+          idade: r.idade != null ? Number(r.idade) : null,
+          maior21: Number(r.maior21) === 1,
+          tipoMoradia: r.tipo_moradia || '',
+          possuiOutrosAnimais: r.possui_outros_animais || '',
+          jaAdotouAntes: r.ja_adotou_antes || '',
+          aceitaTermos: Number(r.aceita_termos) === 1
         });
       });
     });
@@ -1461,6 +1471,31 @@ async function updateInterestStatus(interesseId, status) {
   renderPetLists();
 }
 
+function confirmDonation(interesseId) {
+  const item = state.interessados.find(i => i.interesseId === interesseId);
+  if (!item) return;
+  const pet = getPet(item.petId);
+  openConfirm({
+    icon: '🤝',
+    title: 'Confirmar doação',
+    message: `Confirmar a doação de <strong>${escapeHtml(pet ? pet.nome : 'este pet')}</strong> para <strong>${escapeHtml(item.nome || 'esta pessoa')}</strong>?<br>O pet será marcado como <strong>Adotado</strong> e os demais interesses serão recusados.`,
+    confirmLabel: 'Sim, confirmar doação',
+    onConfirm: async () => {
+      const r = await api('confirmar_doacao', { interesse_id: interesseId });
+      if (!r.success) { showToast(r.message || 'Não foi possível confirmar a doação.', 'error'); return; }
+      // Reflete localmente: pet adotado, este interesse concluído, demais recusados
+      if (pet) pet.status = 'Adotado';
+      state.interessados.forEach(i => {
+        if (i.petId === item.petId) i.status = (i.interesseId === interesseId) ? 'Adoção concluída' : 'Recusado';
+      });
+      showToast(r.message || 'Doação confirmada!', 'success');
+      renderProfile();
+      renderCounters();
+      renderPetLists();
+    }
+  });
+}
+
 const INTEREST_STATUSES = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Adoção concluída', 'Recusado'];
 
 function interestStatusClass(status) {
@@ -1473,26 +1508,55 @@ function interestStatusClass(status) {
   }
 }
 
+function simNaoLabel(v) {
+  const t = String(v || '').toLowerCase();
+  if (t === 'sim') return 'Sim';
+  if (t === 'nao' || t === 'não') return 'Não';
+  return v || '—';
+}
+
+function interestInfoHtml(r) {
+  const local = [r.cidade, r.uf].filter(Boolean).join('/');
+  const itens = [
+    r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : '',
+    local ? `<span>📍 ${escapeHtml(local)}${r.bairro ? ' · ' + escapeHtml(r.bairro) : ''}</span>` : '',
+    r.idade != null ? `<span>🎂 ${escapeHtml(String(r.idade))} anos ${r.maior21 ? '(21+)' : '(menor de 21)'}</span>` : '',
+    r.tipoMoradia ? `<span>🏠 ${escapeHtml(r.tipoMoradia)}</span>` : '',
+    `<span>🐾 Outros animais: ${escapeHtml(simNaoLabel(r.possuiOutrosAnimais))}</span>`,
+    `<span>📋 Já adotou antes: ${escapeHtml(simNaoLabel(r.jaAdotouAntes))}</span>`,
+    `<span>${r.aceitaTermos ? '✅ Aceitou os termos' : '⚠️ Não aceitou os termos'}</span>`
+  ].filter(Boolean).join('');
+  return `<div class="interest-info">${itens}</div>`;
+}
+
 function ownedCardHtml(pet) {
   const interessados = state.interessados.filter(r => r.petId === pet.id);
+  const petAdotado = pet.status === 'Adotado';
   const lista = interessados.length
     ? interessados.map(r => {
         const st = r.status || 'Interesse enviado';
         const opts = INTEREST_STATUSES
           .map(s => `<option value="${escapeHtml(s)}"${s === st ? ' selected' : ''}>${escapeHtml(s)}</option>`)
           .join('');
+        const concluido = st === 'Adoção concluída';
+        // Botão de confirmar doação: disponível enquanto o pet não foi adotado
+        const confirmBtn = (!petAdotado && st !== 'Recusado')
+          ? `<button class="btn-confirm-donation" type="button" data-confirm-donation="${r.interesseId}">🤝 Confirmar doação para esta pessoa</button>`
+          : (concluido ? '<span class="interest-adopted">🏡 Adotou este pet</span>' : '');
         return `
-        <li class="interest-item">
+        <li class="interest-item${concluido ? ' is-chosen' : ''}">
           <div class="interest-person">
             <strong>${escapeHtml(r.nome || 'Interessado(a)')}</strong>
             <span class="interest-status ${interestStatusClass(st)}">${escapeHtml(st)}</span>
           </div>
           ${r.telefone ? `<a class="interest-contact" href="tel:${escapeHtml(r.telefone.replace(/\D/g,''))}">📞 ${escapeHtml(r.telefone)}</a>` : ''}
+          ${interestInfoHtml(r)}
           ${r.mensagem ? `<p class="interest-msg">💬 ${escapeHtml(r.mensagem)}</p>` : ''}
           <label class="interest-process">
             <span>Andamento da adoção:</span>
-            <select class="interest-status-select" data-interesse-id="${r.interesseId}">${opts}</select>
+            <select class="interest-status-select" data-interesse-id="${r.interesseId}"${petAdotado ? ' disabled' : ''}>${opts}</select>
           </label>
+          ${confirmBtn}
         </li>`;
       }).join('')
     : '<li class="none">Ninguém demonstrou interesse ainda.</li>';
@@ -2078,6 +2142,8 @@ function bindEvents() {
       if (rem) { removeInterest(Number(rem.dataset.removeInterest)); return; }
       const res = e.target.closest('[data-restore-refusal]');
       if (res) { restoreRefusal(Number(res.dataset.restoreRefusal)); return; }
+      const conf = e.target.closest('[data-confirm-donation]');
+      if (conf) { confirmDonation(Number(conf.dataset.confirmDonation)); return; }
       const remPet = e.target.closest('[data-remove-pet]');
       if (remPet) { handleRemovePet(Number(remPet.dataset.removePet)); return; }
     });
