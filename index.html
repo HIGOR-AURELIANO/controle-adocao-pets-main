@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>meu4patas — Adoção e doação responsável de pets</title>
+  <meta name="description" content="meu4patas conecta animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.">
+  <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=logo-final-1">
+</head>
+<body>
+
+  <!-- ───────────── TOP BAR ───────────── -->
+  <header class="topbar">
+    <a class="nav-logo" href="#inicio" aria-label="meu4patas - início">
+      <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas" height="38">
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav-menu" id="navMenu">
+      <ul class="nav-links">
+        <li><a href="#inicio">Início</a></li>
+        <li><a href="#explorar">Explorar pets</a></li>
+        <li><a href="#como-funciona">Como funciona</a></li>
+        <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
+        <li><a href="#requisitos">Requisitos</a></li>
+      </ul>
+      <div class="nav-user" id="navUser">
+        <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
+        <div class="user-menu" id="userMenu" hidden>
+          <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="user-avatar" aria-hidden="true">🐾</span>
+            <span class="user-chip-name" id="navUserName">Conta</span>
+            <span class="user-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" hidden>
+            <a href="perfil.html">👤 Minha conta</a>
+            <button type="button" id="btnLogoutMenu">↩ Sair</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ───────────── HERO ───────────── -->
+  <section class="hero" id="inicio">
+    <div class="hero-text">
+      <span class="hero-eyebrow"><span class="paw-white" aria-hidden="true">🐾</span>Adoção e doação responsável</span>
+      <h1>Encontre um amigo de quatro patas para chamar <em>de seu.</em></h1>
+      <p>O <strong>meu4patas</strong> conecta animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade. Pessoas físicas, ONGs e lares temporários, juntos por um mesmo propósito.</p>
+      <div class="hero-actions">
+        <a href="#explorar" class="btn-primary">Ver pets disponíveis</a>
+        <a href="cadastro.html" class="btn-ghost">Fazer cadastro</a>
+        <a href="cadastrar-pet.html" class="btn-ghost">Cadastrar pet para doação</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="stat-num" id="statDisponiveis">0</div>
+          <div class="stat-label">pets disponíveis</div>
+        </div>
+        <div>
+          <div class="stat-num" id="statAdotados">0</div>
+          <div class="stat-label">adoções realizadas</div>
+        </div>
+        <div>
+          <div class="stat-num" id="statOngs">0</div>
+          <div class="stat-label">ONGs / parceiros</div>
+        </div>
+        <div>
+          <div class="stat-num" id="statPessoas">0</div>
+          <div class="stat-label">pets de pessoas físicas</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-illustration">
+      <div class="hero-pet-card">
+        <img src="assets/luna-hero.png" alt="Luna" class="hero-pet-img">
+        <div class="hero-pet-name">Luna</div>
+        <div class="hero-pet-info">SRD · 2 anos · Fêmea</div>
+        <span class="hero-pet-badge">💛 Procurando um lar</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── BUSCA + FILTROS ───────────── -->
+  <section class="search-section">
+    <form class="search-bar" id="searchForm" role="search">
+      <span aria-hidden="true">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar por nome, raça, cidade, temperamento..." aria-label="Buscar pets">
+      <button type="submit" class="search-btn">Buscar</button>
+    </form>
+    <div class="filters" id="filters" role="tablist" aria-label="Filtros de pets">
+      <button class="filter-chip active" data-filter="todos">Todos</button>
+      <button class="filter-chip" data-filter="caes">Cães</button>
+      <button class="filter-chip" data-filter="gatos">Gatos</button>
+      <button class="filter-chip" data-filter="filhotes">Filhotes</button>
+      <button class="filter-chip" data-filter="adultos">Adultos</button>
+      <button class="filter-chip" data-filter="disponiveis">Disponíveis</button>
+      <button class="filter-chip" data-filter="indisponiveis">Indisponíveis</button>
+      <button class="filter-chip" data-filter="adotados">Adotados</button>
+      <button class="filter-chip" data-filter="perto">📍 Perto de você</button>
+    </div>
+  </section>
+
+  <!-- ───────────── EXPLORAR PETS (ESTILO TINDER) ───────────── -->
+  <section class="explore-section" id="explorar">
+    <p class="section-eyebrow">Explore um por um</p>
+    <h2 class="section-title">Explorar pets</h2>
+
+    <div class="explore-stage" id="exploreStage">
+      <!-- Card grande do pet atual é renderizado aqui pelo JS -->
+    </div>
+
+    <div class="explore-actions" id="exploreActions">
+      <button class="explore-btn explore-btn--refuse" id="btnRefuse" title="Não tenho interesse">✕ <span>Não tenho interesse</span></button>
+      <button class="explore-btn explore-btn--details" id="btnDetails" title="Ver detalhes">ⓘ <span>Ver detalhes</span></button>
+      <button class="explore-btn explore-btn--interest" id="btnInterest" title="Tenho interesse">💛 <span>Tenho interesse</span></button>
+    </div>
+  </section>
+
+  <!-- ───────────── LISTAGEM DE PETS ───────────── -->
+  <section class="list-section" id="listagem">
+    <div class="list-inner">
+      <p class="section-eyebrow">Todos os animais</p>
+      <h2 class="section-title">Listagem de pets</h2>
+      <p class="list-count" id="listCount"></p>
+
+      <h3 class="list-group-title list-group-title--ok">Disponíveis</h3>
+      <div class="pets-grid" id="listDisponiveis"></div>
+
+      <h3 class="list-group-title list-group-title--warn">Indisponíveis</h3>
+      <div class="pets-grid" id="listIndisponiveis"></div>
+
+      <h3 class="list-group-title list-group-title--adopted">Adotados</h3>
+      <div class="pets-grid" id="listAdotados"></div>
+    </div>
+  </section>
+
+  <!-- ───────────── COMO FUNCIONA ───────────── -->
+  <section class="how-section" id="como-funciona">
+    <div class="how-inner">
+      <p class="section-eyebrow">Simples assim</p>
+      <h2 class="section-title">Como funciona</h2>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-icon">🔍</div>
+          <div class="step-title">Explore os pets</div>
+          <p class="step-desc">Busque, filtre e conheça cada animal um a um na área "Explorar pets", com foto, ficha e história.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">📝</div>
+          <div class="step-title">Faça seu cadastro</div>
+          <p class="step-desc">Crie sua conta para liberar a demonstração de interesse e poder também cadastrar pets para doação.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">💛</div>
+          <div class="step-title">Demonstre interesse</div>
+          <p class="step-desc">Encontrou um amigo? Demonstre interesse e o responsável poderá entrar em contato com você.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">🏠</div>
+          <div class="step-title">Adote com responsabilidade</div>
+          <p class="step-desc">Combine a visita, atenda aos requisitos e leve seu novo companheiro para casa.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── REQUISITOS ───────────── -->
+  <section class="reqs-section" id="requisitos">
+    <div class="reqs-inner">
+      <p class="section-eyebrow">Adoção responsável</p>
+      <h2 class="section-title">Requisitos para adoção</h2>
+      <ul class="reqs-list">
+        <li>Ter a idade mínima de <strong>21 anos</strong> para demonstrar interesse em adoção.</li>
+        <li>Apresentar documento de identificação.</li>
+        <li>Informar endereço e telefone para contato.</li>
+        <li>Ter condições de manter alimentação e cuidados veterinários.</li>
+        <li>Aceitar e praticar a adoção responsável.</li>
+        <li>Para cães: possuir guia, coleira ou peitoral.</li>
+        <li>Para gatos: possuir caixa de transporte.</li>
+        <li>Comprometer-se com vacinação, vermifugação e bem-estar do animal.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ───────────── FOOTER ───────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas">
+        </div>
+        <p class="footer-tagline">Conectamos animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.</p>
+        <div class="footer-social">
+          <a class="social-btn" href="#" aria-label="Instagram" title="Instagram">📷</a>
+          <a class="social-btn" href="#" aria-label="WhatsApp" title="WhatsApp">💬</a>
+          <a class="social-btn" href="mailto:contato@meu4patas.org" aria-label="E-mail" title="E-mail">✉️</a>
+        </div>
+      </div>
+
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Navegar</h4>
+        <ul>
+          <li><a href="index.html#inicio">Início</a></li>
+          <li><a href="index.html#explorar">Explorar pets</a></li>
+          <li><a href="index.html#como-funciona">Como funciona</a></li>
+          <li><a href="index.html#requisitos">Requisitos</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Participe</h4>
+        <ul>
+          <li><a href="cadastro.html">Criar conta</a></li>
+          <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
+          <li><a href="perfil.html">Minha conta</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer-col footer-cta">
+        <h4 class="footer-col-title">Faça a diferença</h4>
+        <p>Tem um pet para doação? Ajude-o a encontrar um novo lar.</p>
+        <a class="footer-cta-btn" href="cadastrar-pet.html">Cadastrar pet 🐾</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 meu4patas — Todo pet merece um lar de verdade.</span>
+      <span class="footer-made">Feito com 💛 pelo Grupo 6 · <strong>Adote, não compre</strong></span>
+    </div>
+  </footer>
+
+  <!-- ───────────── MODAL DE DETALHES ───────────── -->
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalPetName">
+      <button class="modal-close" id="modalClose" aria-label="Fechar">✕</button>
+      <div class="modal-content" id="modalContent"><!-- preenchido pelo JS --></div>
+    </div>
+  </div>
+
+  <!-- ───────────── TOAST ───────────── -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/script.js?v=logo-final-1"></script>
+</body>
+</html>

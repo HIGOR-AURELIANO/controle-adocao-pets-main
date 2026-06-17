@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastrar pet — meu4patas</title>
+  <meta name="description" content="Cadastre um pet ou uma ninhada para adoção no meu4patas.">
+  <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=logo-final-1">
+</head>
+<body>
+
+  <!-- ───────────── TOP BAR ───────────── -->
+  <header class="topbar">
+    <a class="nav-logo" href="index.html" aria-label="meu4patas - início">
+      <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas" height="38">
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav-menu" id="navMenu">
+      <ul class="nav-links">
+        <li><a href="index.html#inicio">Início</a></li>
+        <li><a href="index.html#explorar">Explorar pets</a></li>
+        <li><a href="index.html#como-funciona">Como funciona</a></li>
+        <li><a href="cadastrar-pet.html" class="active">Cadastrar pet</a></li>
+        <li><a href="index.html#requisitos">Requisitos</a></li>
+      </ul>
+      <div class="nav-user" id="navUser">
+        <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
+        <div class="user-menu" id="userMenu" hidden>
+          <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="user-avatar" aria-hidden="true">🐾</span>
+            <span class="user-chip-name" id="navUserName">Conta</span>
+            <span class="user-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" hidden>
+            <a href="perfil.html">👤 Minha conta</a>
+            <button type="button" id="btnLogoutMenu">↩ Sair</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ───────────── CABEÇALHO DA PÁGINA ───────────── -->
+  <section class="page-head">
+    <div class="page-head-inner">
+      <a class="back-link" href="index.html">← Voltar ao início</a>
+      <p class="section-eyebrow">Ajude um animal</p>
+      <h1 class="page-title">Cadastrar pet para doação</h1>
+      <p class="page-lead">Pessoa física, ONG ou lar temporário pode cadastrar um pet ou uma ninhada. O animal aparece imediatamente na listagem e, se estiver disponível, na área "Explorar pets".</p>
+    </div>
+  </section>
+
+  <!-- ───────────── CADASTRAR PET PARA DOAÇÃO ───────────── -->
+  <main class="form-page">
+    <div class="form-inner">
+      <form id="petForm" class="card-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="p_responsavel">Nome do responsável *</label>
+            <input type="text" id="p_responsavel" name="responsavelNome">
+          </div>
+          <div class="form-group">
+            <label for="p_telefone">Telefone / WhatsApp do responsável *</label>
+            <input type="tel" id="p_telefone" name="responsavelTelefone" placeholder="(31) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label for="p_tipoResp">Tipo de responsável *</label>
+            <select id="p_tipoResp" name="responsavelTipo">
+              <option value="">Selecione</option>
+              <option>Pessoa física</option>
+              <option>ONG</option>
+              <option>Lar temporário</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="p_tipoCadastro">Tipo do cadastro *</label>
+            <select id="p_tipoCadastro" name="tipoCadastro">
+              <option value="Pet individual">Pet individual</option>
+              <option value="Filhotes/Ninhada">Filhotes / Ninhada</option>
+            </select>
+          </div>
+          <div class="form-group" id="grupoNome">
+            <label for="p_nome" id="labelNome">Nome do pet *</label>
+            <input type="text" id="p_nome" name="nome" placeholder="Ex.: Bolinha">
+          </div>
+          <div class="form-group" id="grupoQuantidade" hidden>
+            <label for="p_quantidade">Quantidade de filhotes *</label>
+            <input type="number" id="p_quantidade" name="quantidade" min="2" value="3">
+          </div>
+          <div class="form-group">
+            <label for="p_especie">Espécie *</label>
+            <select id="p_especie" name="especie">
+              <option value="">Selecione</option>
+              <option>Cão</option>
+              <option>Gato</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="p_raca">Raça *</label>
+            <select id="p_raca" name="raca">
+              <option value="">Selecione a espécie primeiro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="p_idade">Idade aproximada *</label>
+            <input type="text" id="p_idade" name="idade" placeholder="Ex.: 2 anos">
+          </div>
+          <div class="form-group">
+            <label for="p_idadeMeses">Idade em meses *</label>
+            <input type="number" id="p_idadeMeses" name="idadeMeses" min="0" placeholder="Ex.: 24">
+          </div>
+          <div class="form-group">
+            <label for="p_sexo">Sexo *</label>
+            <select id="p_sexo" name="sexo">
+              <option value="">Selecione</option>
+              <option>Macho</option>
+              <option>Fêmea</option>
+              <option>Variado (ninhada)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="p_cidade">Cidade *</label>
+            <input type="text" id="p_cidade" name="cidade">
+          </div>
+          <div class="form-group">
+            <label for="p_uf">UF *</label>
+            <select id="p_uf" name="uf">
+              <option value="">--</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+              <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+              <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+              <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+              <option>SE</option><option>TO</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="p_bairro">Bairro *</label>
+            <input type="text" id="p_bairro" name="bairro">
+          </div>
+          <div class="form-group">
+            <label for="p_status">Status *</label>
+            <select id="p_status" name="status">
+              <option>Disponível</option>
+              <option>Indisponível</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="p_descricao">Descrição / história do animal *</label>
+          <textarea id="p_descricao" name="descricao" placeholder="Conte a história, o resgate, a personalidade e necessidades especiais..."></textarea>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="p_temperamento">Temperamento <small>(separe por vírgula)</small></label>
+            <input type="text" id="p_temperamento" name="temperamento" placeholder="Dócil, Brincalhão, Sociável">
+          </div>
+          <div class="form-group">
+            <label for="p_larIdeal">Lar ideal <small>(separe por vírgula)</small></label>
+            <input type="text" id="p_larIdeal" name="larIdeal" placeholder="Casa com quintal, Família paciente">
+          </div>
+        </div>
+
+        <!-- Imagem obrigatória + preview -->
+        <div class="form-group">
+          <label for="p_imagem">Imagem do pet * <small>(obrigatória)</small></label>
+          <input type="file" id="p_imagem" name="imagem" accept="image/*">
+          <div class="image-preview" id="imagePreview" hidden>
+            <img id="imagePreviewImg" alt="Pré-visualização do pet">
+            <span>Pré-visualização</span>
+          </div>
+        </div>
+
+        <!-- Ficha médica -->
+        <fieldset class="form-fieldset">
+          <legend>Ficha médica</legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="p_leishmaniose">Leishmaniose</label>
+              <select id="p_leishmaniose" name="leishmaniose">
+                <option>Não testado</option>
+                <option>Negativo</option>
+                <option>Positivo/em tratamento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="p_vacinaPrincipal">Vacina principal (V8/V10 ou V4/V5)</label>
+              <input type="text" id="p_vacinaPrincipal" name="vacinaPrincipal" placeholder="Ex.: V10">
+            </div>
+            <div class="form-group">
+              <label for="p_condicaoEspecial">Possui condição especial?</label>
+              <input type="text" id="p_condicaoEspecial" name="condicaoEspecial" placeholder="Ex.: cego, três patas... (deixe vazio se não)">
+            </div>
+          </div>
+          <div class="check-grid">
+            <label class="check-mini"><input type="checkbox" name="vermifugo"> Vermífugo aplicado</label>
+            <label class="check-mini"><input type="checkbox" name="v8v10"> V8 ou V10</label>
+            <label class="check-mini"><input type="checkbox" name="antirrabica"> Antirrábica</label>
+            <label class="check-mini"><input type="checkbox" name="gripeCanina"> Gripe canina</label>
+            <label class="check-mini"><input type="checkbox" name="giardia"> Giárdia</label>
+            <label class="check-mini"><input type="checkbox" name="v4v5"> V4 ou V5</label>
+            <label class="check-mini"><input type="checkbox" name="felv"> FeLV testada</label>
+            <label class="check-mini"><input type="checkbox" name="castrado"> Castrado</label>
+          </div>
+          <div class="form-group">
+            <label for="p_obsVet">Observações veterinárias</label>
+            <textarea id="p_obsVet" name="observacoes" placeholder="Observações gerais sobre a saúde do animal..."></textarea>
+          </div>
+        </fieldset>
+
+        <label class="check-row">
+          <input type="checkbox" id="p_declaroResponsavel" name="declaroResponsavel">
+          <span>Declaro que sou responsável pelas informações fornecidas sobre este pet e autorizo sua divulgação para adoção responsável.</span>
+        </label>
+
+        <div class="form-error" id="petFormError" role="alert"></div>
+        <button type="submit" class="btn-primary btn-full">Cadastrar pet 🐾</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- ───────────── FOOTER ───────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas">
+        </div>
+        <p class="footer-tagline">Conectamos animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.</p>
+        <div class="footer-social">
+          <a class="social-btn" href="#" aria-label="Instagram" title="Instagram">📷</a>
+          <a class="social-btn" href="#" aria-label="WhatsApp" title="WhatsApp">💬</a>
+          <a class="social-btn" href="mailto:contato@meu4patas.org" aria-label="E-mail" title="E-mail">✉️</a>
+        </div>
+      </div>
+
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Navegar</h4>
+        <ul>
+          <li><a href="index.html#inicio">Início</a></li>
+          <li><a href="index.html#explorar">Explorar pets</a></li>
+          <li><a href="index.html#como-funciona">Como funciona</a></li>
+          <li><a href="index.html#requisitos">Requisitos</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Participe</h4>
+        <ul>
+          <li><a href="cadastro.html">Criar conta</a></li>
+          <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
+          <li><a href="perfil.html">Minha conta</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer-col footer-cta">
+        <h4 class="footer-col-title">Faça a diferença</h4>
+        <p>Tem um pet para doação? Ajude-o a encontrar um novo lar.</p>
+        <a class="footer-cta-btn" href="cadastrar-pet.html">Cadastrar pet 🐾</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 meu4patas — Todo pet merece um lar de verdade.</span>
+      <span class="footer-made">Feito com 💛 pelo Grupo 6 · <strong>Adote, não compre</strong></span>
+    </div>
+  </footer>
+
+  <!-- ───────────── TOAST ───────────── -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/script.js?v=logo-final-1"></script>
+</body>
+</html>
