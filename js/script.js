@@ -210,9 +210,13 @@ async function loadUserDataFromAPI() {
       (pet.interessados || []).forEach(r => {
         state.interessados.push({
           petId,
+          interesseId: Number(r.id),
           nome: r.nome_completo || '',
           telefone: r.telefone || '',
-          email: r.email || ''
+          email: r.email || '',
+          mensagem: r.mensagem || '',
+          status: r.status || 'Interesse enviado',
+          criadoEm: r.criado_em || ''
         });
       });
     });
@@ -1437,14 +1441,60 @@ async function removeInterest(petId) {
   renderProfile();
 }
 
+async function updateInterestStatus(interesseId, status) {
+  const r = await api('atualizar_status_interesse', { interesse_id: interesseId, status });
+  if (!r.success) {
+    showToast(r.message || 'Não foi possível atualizar o andamento.', 'error');
+    return;
+  }
+  // Atualiza o estado local para refletir imediatamente
+  const item = state.interessados.find(i => i.interesseId === interesseId);
+  if (item) item.status = status;
+  // Concluir a adoção marca o pet como adotado
+  if (status === 'Adoção concluída' && item) {
+    const pet = getPet(item.petId);
+    if (pet) pet.status = 'Adotado';
+  }
+  showToast(r.message || 'Andamento da adoção atualizado.', 'success');
+  renderProfile();
+  renderCounters();
+  renderPetLists();
+}
+
+const INTEREST_STATUSES = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Adoção concluída', 'Recusado'];
+
+function interestStatusClass(status) {
+  switch (status) {
+    case 'Em conversa':      return 'is-talking';
+    case 'Aprovado':         return 'is-approved';
+    case 'Adoção concluída': return 'is-done';
+    case 'Recusado':         return 'is-refused';
+    default:                 return 'is-new';
+  }
+}
+
 function ownedCardHtml(pet) {
   const interessados = state.interessados.filter(r => r.petId === pet.id);
   const lista = interessados.length
-    ? interessados.map(r => `
-        <li>
-          <strong>${escapeHtml(r.nome || 'Interessado(a)')}</strong>
-          ${r.telefone ? `<a href="tel:${escapeHtml(r.telefone.replace(/\D/g,''))}">📞 ${escapeHtml(r.telefone)}</a>` : ''}
-        </li>`).join('')
+    ? interessados.map(r => {
+        const st = r.status || 'Interesse enviado';
+        const opts = INTEREST_STATUSES
+          .map(s => `<option value="${escapeHtml(s)}"${s === st ? ' selected' : ''}>${escapeHtml(s)}</option>`)
+          .join('');
+        return `
+        <li class="interest-item">
+          <div class="interest-person">
+            <strong>${escapeHtml(r.nome || 'Interessado(a)')}</strong>
+            <span class="interest-status ${interestStatusClass(st)}">${escapeHtml(st)}</span>
+          </div>
+          ${r.telefone ? `<a class="interest-contact" href="tel:${escapeHtml(r.telefone.replace(/\D/g,''))}">📞 ${escapeHtml(r.telefone)}</a>` : ''}
+          ${r.mensagem ? `<p class="interest-msg">💬 ${escapeHtml(r.mensagem)}</p>` : ''}
+          <label class="interest-process">
+            <span>Andamento da adoção:</span>
+            <select class="interest-status-select" data-interesse-id="${r.interesseId}">${opts}</select>
+          </label>
+        </li>`;
+      }).join('')
     : '<li class="none">Ninguém demonstrou interesse ainda.</li>';
 
   return `
@@ -1672,6 +1722,17 @@ function renderProfile() {
   const idade      = calcIdade(u.nascimento);
   const habilitado = u.maior21;
 
+  // Interesses recebidos nos meus pets aguardando andamento (notificação para o responsável/ONG)
+  const aguardando = state.interessados.filter(
+    r => r.status === 'Interesse enviado' || r.status === 'Em conversa'
+  );
+  const notifHtml = aguardando.length
+    ? `<div class="profile-notification" role="status">
+         🔔 <strong>${aguardando.length} interessado(s)</strong> ${aguardando.length === 1 ? 'aguarda' : 'aguardam'} você dar andamento à adoção.
+         Veja em <a href="#meusPets">Pets que cadastrei para doação</a> e atualize o andamento de cada um.
+       </div>`
+    : '';
+
   const eligibilityHtml = habilitado
     ? '<div class="profile-eligibility is-ok">✅ Você está <strong>habilitado</strong> para demonstrar interesse em adoção.</div>'
     : '<div class="profile-eligibility is-blocked">⚠️ Cadastro realizado, mas <strong>não habilitado</strong> para demonstrar interesse em adoção. A idade mínima exigida é 21 anos.</div>';
@@ -1704,6 +1765,8 @@ function renderProfile() {
       </div>
       <button class="btn-logout" type="button" id="btnLogout">Sair da conta</button>
     </div>
+
+    ${notifHtml}
 
     ${eligibilityHtml}
 
@@ -1740,7 +1803,7 @@ function renderProfile() {
       </div>
     </section>
 
-    <section class="profile-block">
+    <section class="profile-block" id="meusPets">
       <h3 class="profile-block-title">Pets que cadastrei para doação</h3>
       <div class="pets-grid">
         ${meusPets.length ? meusPets.map(ownedCardHtml).join('')
@@ -2017,6 +2080,10 @@ function bindEvents() {
       if (res) { restoreRefusal(Number(res.dataset.restoreRefusal)); return; }
       const remPet = e.target.closest('[data-remove-pet]');
       if (remPet) { handleRemovePet(Number(remPet.dataset.removePet)); return; }
+    });
+    perfilSection.addEventListener('change', e => {
+      const sel = e.target.closest('.interest-status-select');
+      if (sel) updateInterestStatus(Number(sel.dataset.interesseId), sel.value);
     });
   }
 

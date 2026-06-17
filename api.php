@@ -958,6 +958,45 @@ try {
             ok(null, 'Interesse removido.');
         }
 
+        /* ─── ATUALIZAR STATUS DO INTERESSE (responsável/ONG dá andamento) ─── */
+        case 'atualizar_status_interesse': {
+            $s = sessaoAtiva();
+            $pdo = getPDO();
+            $interesseId = (int)input('interesse_id');
+            $novoStatus  = sanitize((string)input('status', ''));
+            if (!$interesseId) err('Interesse inválido.');
+
+            $permitidos = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Adoção concluída', 'Recusado'];
+            if (!in_array($novoStatus, $permitidos, true))
+                err('Status de adoção inválido.');
+
+            /* Confirmar que o interesse pertence a um pet do usuário logado */
+            $stmt = $pdo->prepare("
+                SELECT i.id, i.pet_id, p.usuario_doador_id
+                FROM interesses i
+                JOIN pets p ON p.id = i.pet_id
+                WHERE i.id = ?
+            ");
+            $stmt->execute([$interesseId]);
+            $row = $stmt->fetch();
+            if (!$row) err('Interesse não encontrado.', 404);
+            if ((int)$row['usuario_doador_id'] !== (int)$s['id'])
+                err('Você só pode dar andamento aos interesses dos pets que cadastrou.', 403);
+
+            $pdo->prepare("UPDATE interesses SET status=? WHERE id=?")
+                ->execute([$novoStatus, $interesseId]);
+
+            /* Concluir a adoção também atualiza o status do pet */
+            if ($novoStatus === 'Adoção concluída') {
+                $pdo->prepare("UPDATE pets SET status='Adotado', atualizado_em=CURRENT_TIMESTAMP WHERE id=?")
+                    ->execute([(int)$row['pet_id']]);
+            } elseif ($novoStatus === 'Recusado') {
+                /* Recusa de uma adoção não altera o status do pet */
+            }
+
+            ok(null, 'Andamento da adoção atualizado.');
+        }
+
         /* ─── REGISTRAR RECUSA ─── */
         case 'registrar_recusa': {
             $s = sessaoAtiva();
