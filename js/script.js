@@ -2009,26 +2009,7 @@ function locateMeOnMap() {
 /* ===========================================================
    19. INICIALIZAÇÃO / EVENTOS
 =========================================================== */
-/* Define o fundo desfocado de cada moldura de imagem a partir da própria foto,
-   para preencher o espaço sem cortar a imagem (que fica inteira em primeiro plano). */
-function setupImageFills() {
-  const SEL = '.explore-card-img, .pet-card-img, .modal-img';
-  const apply = img => {
-    const holder = img.closest && img.closest(SEL);
-    const src = img.currentSrc || img.src;
-    if (holder && src) holder.style.backgroundImage = `url("${src}")`;
-  };
-  const sweep = () => document.querySelectorAll(`${SEL} img`).forEach(img => { if (img.complete) apply(img); });
-  // load (fase de captura) cobre imagens que ainda vão carregar, incluindo o fallback do onerror
-  document.addEventListener('load', e => { if (e.target.tagName === 'IMG') apply(e.target); }, true);
-  // MutationObserver cobre re-renders com imagens já em cache (que não disparam load)
-  new MutationObserver(sweep).observe(document.body, { childList: true, subtree: true });
-  sweep();
-}
-
 async function initApp() {
-  setupImageFills();
-
   // 1. Sessão e pets em paralelo
   const [_, petsR] = await Promise.all([
     loadSessionFromAPI(),
