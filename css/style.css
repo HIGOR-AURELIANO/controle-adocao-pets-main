@@ -190,17 +190,22 @@ a { color: var(--verde-claro); }
 .btn-cadastrar:hover { background: var(--laranja-escuro); transform: translateY(-1px); }
 .btn-login {
   background: transparent;
-  color: var(--verde) !important;
+  color: var(--creme) !important;
   padding: 9px 18px;
   border-radius: 100px;
-  border: 1.5px solid var(--verde);
+  border: 1.5px solid rgba(247, 243, 236, 0.45);
   font-weight: 600;
   font-size: 0.85rem;
   text-decoration: none;
-  transition: background 0.2s, color 0.2s, transform 0.15s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
   white-space: nowrap;
 }
-.btn-login:hover { background: var(--verde); color: #fff !important; transform: translateY(-1px); }
+.btn-login:hover {
+  background: rgba(247, 243, 236, 0.12);
+  border-color: rgba(247, 243, 236, 0.8);
+  color: #fff !important;
+  transform: translateY(-1px);
+}
 
 /* hamburger */
 .nav-toggle {
@@ -1775,9 +1780,19 @@ a { color: var(--verde-claro); }
   .nav-links li { width: 100%; }
   .nav-links a { display: block; padding: 12px 4px; width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
 
-  .nav-user { flex-direction: column; align-items: stretch; width: 100%; margin-top: 14px; gap: 12px; }
-  .nav-user .btn-cadastrar,
-  .nav-user .btn-login { text-align: center; }
+  .nav-user { flex-direction: column; align-items: stretch; width: 100%; margin-top: 14px; gap: 10px; }
+  .nav-user .btn-cadastrar { text-align: center; }
+  .nav-user .btn-login {
+    text-align: center;
+    color: var(--creme) !important;
+    border-color: rgba(247, 243, 236, 0.45);
+    background: rgba(247, 243, 236, 0.08);
+  }
+  .nav-user .btn-login:hover {
+    background: rgba(247, 243, 236, 0.18);
+    color: #fff !important;
+    border-color: rgba(247, 243, 236, 0.7);
+  }
 
   /* No mobile a conta fica "plana": chip vira um rótulo e os itens (Minha conta / Sair)
      aparecem direto no menu, sem submenu aninhado que não recolhe. */
