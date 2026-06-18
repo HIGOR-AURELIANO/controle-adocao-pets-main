@@ -5,7 +5,6 @@ Thumbs.db
 # Editores / ferramentas
 .vscode/
 .idea/
-.claude/
 
 # Logs
 *.log
