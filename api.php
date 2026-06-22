@@ -381,16 +381,36 @@ function validarCPF(string $cpf): bool {
     return (int)$cpf[10] === $d2;
 }
 
+function parseFotos(string $imagem): array {
+    if (!$imagem) return [];
+    $decoded = json_decode($imagem, true);
+    if (is_array($decoded)) return array_values(array_filter($decoded));
+    return [$imagem];
+}
+
+function normalizePetRow(array &$row): void {
+    $fotos = parseFotos($row['imagem'] ?? '');
+    $row['fotos'] = $fotos;
+    $row['imagem'] = $fotos[0] ?? '';
+}
+
 function sanitize(string $v): string {
     return trim(strip_tags($v));
 }
 
 function input(string $key, mixed $default = ''): mixed {
-    /* Suporte a JSON body e form-data */
+    /* Suporte a JSON body e form-data.
+       Não lê php://input para multipart/form-data — o built-in server do PHP
+       pode ter o stream consumido antes de popular $_POST/$_FILES. */
     static $json = null;
     if ($json === null) {
-        $raw = file_get_contents('php://input');
-        $json = json_decode($raw ?: '{}', true) ?? [];
+        $ct = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (str_contains($ct, 'multipart/form-data')) {
+            $json = [];
+        } else {
+            $raw = file_get_contents('php://input');
+            $json = json_decode($raw ?: '{}', true) ?? [];
+        }
     }
     if (isset($json[$key])) return $json[$key];
     if (isset($_POST[$key])) return $_POST[$key];
@@ -617,10 +637,10 @@ try {
                 ORDER BY p.criado_em DESC
             ";
             $rows = getPDO()->query($sql)->fetchAll();
-            /* Formata campos JSON-like */
             foreach ($rows as &$r) {
                 $r['temperamento_arr'] = array_filter(array_map('trim', explode(',', $r['temperamento'] ?? '')));
                 $r['lar_ideal_arr']    = array_filter(array_map('trim', explode(',', $r['lar_ideal'] ?? '')));
+                normalizePetRow($r);
             }
             ok($rows);
         }
@@ -628,12 +648,14 @@ try {
         /* ─── LISTAR PETS DISPONÍVEIS ─── */
         case 'listar_pets_disponiveis': {
             $rows = getPDO()->query("SELECT * FROM pets WHERE status='Disponível' ORDER BY criado_em DESC")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
         /* ─── LISTAR PETS ADOTADOS ─── */
         case 'listar_pets_adotados': {
             $rows = getPDO()->query("SELECT p.*,a.nome_completo AS adotante_nome FROM pets p LEFT JOIN adotantes a ON a.id=p.adotante_id WHERE p.status='Adotado'")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
@@ -645,6 +667,7 @@ try {
             $stmt->execute([$id]);
             $row = $stmt->fetch();
             if (!$row) err('Pet não encontrado.', 404);
+            normalizePetRow($row);
             ok($row);
         }
 
@@ -688,26 +711,26 @@ try {
             /* Impedir usuário comum de cadastrar como Adotado */
             if ($status === 'Adotado') $status = 'Disponível';
 
-            /* Upload de imagem */
-            $imagem = '';
-            if (!empty($_FILES['imagem']['tmp_name'])) {
-                $allowed = ['jpg','jpeg','png','webp'];
-                $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
-                if (!in_array($ext, $allowed)) err('Formato de imagem inválido. Use jpg, jpeg, png ou webp.');
-                if ($_FILES['imagem']['size'] > 5 * 1024 * 1024) err('Imagem muito grande. Máximo 5MB.');
-
-                $uploadsDir = __DIR__ . '/uploads';
-                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
-
-                $filename = 'pet_' . uniqid() . '.' . $ext;
-                $dest = $uploadsDir . '/' . $filename;
-                if (!move_uploaded_file($_FILES['imagem']['tmp_name'], $dest))
-                    err('Erro ao salvar imagem.');
-                $imagem = 'uploads/' . $filename;
-            } else {
-                /* Imagem padrão por espécie */
-                $imagem = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
+            /* Upload de imagens (até 3) */
+            $allowed    = ['jpg','jpeg','png','webp'];
+            $uploadsDir = __DIR__ . '/uploads';
+            if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
+            $fotos = [];
+            for ($fi = 0; $fi < 3; $fi++) {
+                $key = "imagem_$fi";
+                if (empty($_FILES[$key]['tmp_name'])) continue;
+                $ext = strtolower(pathinfo($_FILES[$key]['name'], PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowed)) err('Formato inválido na foto ' . ($fi+1) . '. Use jpg, jpeg, png ou webp.');
+                if ($_FILES[$key]['size'] > 5 * 1024 * 1024) err('Foto ' . ($fi+1) . ' muito grande. Máximo 5MB por foto.');
+                $fname = 'pet_' . uniqid() . '.' . $ext;
+                if (!move_uploaded_file($_FILES[$key]['tmp_name'], $uploadsDir . '/' . $fname))
+                    err('Erro ao salvar foto ' . ($fi+1) . '.');
+                $fotos[] = 'uploads/' . $fname;
             }
+            if (empty($fotos)) {
+                $fotos[] = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
+            }
+            $imagem = count($fotos) === 1 ? $fotos[0] : json_encode($fotos);
 
             $stmt = $pdo->prepare("
                 INSERT INTO pets
@@ -763,17 +786,25 @@ try {
             $obs     = sanitize((string)input('observacoes_veterinarias', $existing['observacoes_veterinarias']));
             $cast    = (int)(bool)input('castrado', $existing['castrado']);
 
-            $imagem = $existing['imagem'];
-            if (!empty($_FILES['imagem']['tmp_name'])) {
-                $allowed = ['jpg','jpeg','png','webp'];
-                $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
-                if (in_array($ext, $allowed)) {
-                    $filename = 'pet_' . uniqid() . '.' . $ext;
-                    $dest = __DIR__ . '/uploads/' . $filename;
-                    if (move_uploaded_file($_FILES['imagem']['tmp_name'], $dest))
-                        $imagem = 'uploads/' . $filename;
-                }
+            /* Fotos existentes a manter + novas */
+            $fotosExistentes = json_decode((string)input('fotos_existentes', '[]'), true);
+            $fotos = is_array($fotosExistentes) ? array_values(array_filter($fotosExistentes, 'is_string')) : [];
+            $allowedUpd    = ['jpg','jpeg','png','webp'];
+            $uploadsDirUpd = __DIR__ . '/uploads';
+            if (!is_dir($uploadsDirUpd)) mkdir($uploadsDirUpd, 0755, true);
+            for ($fi = 0; $fi < 3; $fi++) {
+                $key = "imagem_$fi";
+                if (empty($_FILES[$key]['tmp_name'])) continue;
+                $ext = strtolower(pathinfo($_FILES[$key]['name'], PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowedUpd)) continue;
+                if ($_FILES[$key]['size'] > 5 * 1024 * 1024) continue;
+                $fname = 'pet_' . uniqid() . '.' . $ext;
+                if (move_uploaded_file($_FILES[$key]['tmp_name'], $uploadsDirUpd . '/' . $fname))
+                    $fotos[] = 'uploads/' . $fname;
             }
+            $fotos = array_slice(array_values(array_unique($fotos)), 0, 3);
+            if (empty($fotos)) $fotos = parseFotos($existing['imagem']);
+            $imagem = count($fotos) === 1 ? $fotos[0] : json_encode($fotos);
 
             $pdo->prepare("
                 UPDATE pets SET nome_pet=?,especie=?,raca=?,idade_aproximada=?,idade_meses=?,

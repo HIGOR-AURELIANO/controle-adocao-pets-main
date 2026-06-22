@@ -60,8 +60,11 @@ const state = {
   currentExploreId: null,
   geo: null,
   editingPetId: null,
-  pendingImage: '',      // URL/dataURL for preview
-  pendingImageFile: null // File object for upload
+  pendingImages: [
+    { src: '', file: null, existing: '' },
+    { src: '', file: null, existing: '' },
+    { src: '', file: null, existing: '' }
+  ]
 };
 
 const $id = (id) => document.getElementById(id);
@@ -111,8 +114,13 @@ function normalizePet(p) {
       const img = p.imagem || '';
       if (!img) return '/assets/luna-hero.png';
       if (img.startsWith('http') || img.startsWith('/')) return img;
-      return '/' + img; // relativo→absoluto: uploads/xxx → /uploads/xxx
+      return '/' + img;
     })(),
+    fotos: (p.fotos || [p.imagem]).filter(Boolean).map(f => {
+      if (!f) return '/assets/luna-hero.png';
+      if (f.startsWith('http') || f.startsWith('/')) return f;
+      return '/' + f;
+    }),
     descricao: p.descricao || '',
     temperamento: Array.isArray(p.temperamento_arr) ? p.temperamento_arr : splitArr(p.temperamento),
     larIdeal: Array.isArray(p.lar_ideal_arr) ? p.lar_ideal_arr : splitArr(p.lar_ideal),
@@ -1030,19 +1038,53 @@ function atualizarIdadeSpinner() {
   if (hm) hm.value = String(total);
 }
 
-function handleImagePreview(event) {
-  const file = event.target.files && event.target.files[0];
-  const box = $id('imagePreview');
-  const img = $id('imagePreviewImg');
-  if (!file) { state.pendingImage = ''; state.pendingImageFile = null; if (box) box.hidden = true; return; }
-  state.pendingImageFile = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    state.pendingImage = e.target.result;
-    if (img) img.src = state.pendingImage;
-    if (box) box.hidden = false;
-  };
-  reader.readAsDataURL(file);
+function initFotoSlots() {
+  const slots = document.querySelectorAll('#fotoSlots .foto-slot');
+  if (!slots.length) return;
+  slots.forEach(slot => {
+    const idx  = Number(slot.dataset.slot);
+    const ph   = slot.querySelector('.foto-slot-ph');
+    const prev = slot.querySelector('.foto-slot-preview');
+    const inp  = slot.querySelector('input[type="file"]');
+    const del  = slot.querySelector('.foto-slot-del');
+    if (ph) ph.addEventListener('click', () => inp && inp.click());
+    if (inp) inp.addEventListener('change', () => {
+      const file = inp.files && inp.files[0];
+      if (!file) return;
+      state.pendingImages[idx] = { src: '', file, existing: '' };
+      const reader = new FileReader();
+      reader.onload = e => {
+        state.pendingImages[idx].src = e.target.result;
+        const img = slot.querySelector('img');
+        if (img) img.src = e.target.result;
+        if (ph) ph.hidden = true;
+        if (prev) prev.hidden = false;
+      };
+      reader.readAsDataURL(file);
+    });
+    if (del) del.addEventListener('click', () => {
+      state.pendingImages[idx] = { src: '', file: null, existing: '' };
+      if (inp) { inp.value = ''; }
+      if (ph) ph.hidden = false;
+      if (prev) prev.hidden = true;
+    });
+  });
+}
+
+function resetFotoSlots() {
+  state.pendingImages = [
+    { src: '', file: null, existing: '' },
+    { src: '', file: null, existing: '' },
+    { src: '', file: null, existing: '' }
+  ];
+  for (let i = 0; i < 3; i++) {
+    const inp  = $id(`fotoInput${i}`);
+    const ph   = document.querySelector(`#fotoSlot${i} .foto-slot-ph`);
+    const prev = document.querySelector(`#fotoSlot${i} .foto-slot-preview`);
+    if (inp) inp.value = '';
+    if (ph) ph.hidden = false;
+    if (prev) prev.hidden = true;
+  }
 }
 
 function prefillPetForm(pet) {
@@ -1088,12 +1130,24 @@ function prefillPetForm(pet) {
   set('temperamento', (pet.temperamento || []).join(', '));
   set('larIdeal', (pet.larIdeal || []).join(', '));
 
-  // Imagem atual
-  state.pendingImage    = pet.imagem || '';
-  state.pendingImageFile = null;
-  const box = $id('imagePreview');
-  const img = $id('imagePreviewImg');
-  if (state.pendingImage && box && img) { img.src = state.pendingImage; box.hidden = false; }
+  // Fotos atuais nos slots
+  state.pendingImages = [
+    { src: '', file: null, existing: '' },
+    { src: '', file: null, existing: '' },
+    { src: '', file: null, existing: '' }
+  ];
+  const fotos = pet.fotos && pet.fotos.length ? pet.fotos : (pet.imagem ? [pet.imagem] : []);
+  fotos.slice(0, 3).forEach((url, i) => {
+    if (!url) return;
+    const rawUrl = url.startsWith('/') ? url.slice(1) : url;
+    state.pendingImages[i] = { src: url, file: null, existing: rawUrl };
+    const ph   = document.querySelector(`#fotoSlot${i} .foto-slot-ph`);
+    const prev = document.querySelector(`#fotoSlot${i} .foto-slot-preview`);
+    const img  = document.querySelector(`#fotoPreviewImg${i}`);
+    if (ph) ph.hidden = true;
+    if (prev) prev.hidden = false;
+    if (img) img.src = url;
+  });
 
   setSel('leishmaniose', fm.leishmaniose);
   set('condicaoEspecial', fm.condicaoEspecial);
@@ -1160,7 +1214,8 @@ function validatePetForm() {
   if (!get('uf')) errors.push('Selecione a UF.');
   if (!get('bairro')) errors.push('Informe o bairro.');
   if (!get('descricao')) errors.push('Descreva a história do animal.');
-  if (!state.pendingImage && !state.pendingImageFile) errors.push('A imagem do pet é obrigatória.');
+  const temFoto = state.pendingImages.some(s => s.file || s.src || s.existing);
+  if (!temFoto) errors.push('Adicione pelo menos 1 foto do pet.');
   if (!f.elements['declaroResponsavel'] || !f.elements['declaroResponsavel'].checked) errors.push('Confirme a declaração de responsabilidade pelas informações do pet.');
 
   return { valid: errors.length === 0, message: errors[0] || '', errors };
@@ -1224,10 +1279,19 @@ async function handlePetSubmit(event) {
 
   if (editing) fd.append('id', String(state.editingPetId));
 
-  // Imagem: arquivo novo ou URL existente
-  if (state.pendingImageFile) {
-    fd.append('imagem', state.pendingImageFile);
+  // Fotos: novos arquivos + existentes a manter
+  const fotosExistentes = [];
+  let slotIdx = 0;
+  for (let i = 0; i < 3; i++) {
+    const slot = state.pendingImages[i];
+    if (slot.file) {
+      fd.append(`imagem_${slotIdx}`, slot.file);
+      slotIdx++;
+    } else if (slot.existing) {
+      fotosExistentes.push(slot.existing);
+    }
   }
+  fd.append('fotos_existentes', JSON.stringify(fotosExistentes));
 
   const btn = f.querySelector('button[type="submit"]');
   if (btn) btn.disabled = true;
@@ -1248,10 +1312,7 @@ async function handlePetSubmit(event) {
   if (state.user) await loadUserDataFromAPI();
 
   f.reset();
-  state.pendingImage    = '';
-  state.pendingImageFile = null;
-  const imgPreview = $id('imagePreview');
-  if (imgPreview) imgPreview.hidden = true;
+  resetFotoSlots();
   updateBreedOptions('');
   toggleNinhadaFields();
   state.editingPetId = null;
@@ -1300,11 +1361,19 @@ function showPetDetails(petId) {
 
   const qtd = pet.doacao && pet.doacao.tipo === 'Filhotes/Ninhada' ? pet.doacao.quantidade + ' filhotes' : '1 (individual)';
 
+  const allFotos = pet.fotos && pet.fotos.length ? pet.fotos : [pet.imagem];
+  const thumbsHtml = allFotos.length > 1
+    ? `<div class="modal-thumbs">${allFotos.map((f,i) =>
+        `<img src="${escapeHtml(f)}" class="modal-thumb${i===0?' active':''}" data-idx="${i}" onerror="this.src='assets/luna-hero.png'" alt="Foto ${i+1}">`
+      ).join('')}</div>`
+    : '';
+
   content.innerHTML = `
-    <div class="modal-img">
-      <img src="${escapeHtml(pet.imagem)}" alt="${escapeHtml(pet.nome)}" onerror="this.src='assets/luna-hero.png'">
+    <div class="modal-img" id="modalImgWrapper">
+      <img id="modalMainImg" src="${escapeHtml(allFotos[0])}" alt="${escapeHtml(pet.nome)}" onerror="this.src='assets/luna-hero.png'">
       <span class="explore-card-status ${statusBadgeClass(pet.status)}">${escapeHtml(pet.status)}</span>
     </div>
+    ${thumbsHtml}
     <div class="modal-body">
       <div class="modal-head">
         <div>
@@ -1354,6 +1423,8 @@ function showPetDetails(petId) {
   const overlay = $id('modalOverlay');
   if (overlay) { overlay.hidden = false; document.body.style.overflow = 'hidden'; }
 
+  initModalThumbs(content);
+
   const interestBtn = $id('modalInterestBtn');
   if (interestBtn) interestBtn.addEventListener('click', () => registerInterest(Number(interestBtn.dataset.id)));
 }
@@ -1362,6 +1433,19 @@ function closePetDetails() {
   const overlay = $id('modalOverlay');
   if (overlay) overlay.hidden = true;
   document.body.style.overflow = '';
+}
+
+function initModalThumbs(content) {
+  const thumbs = content.querySelectorAll('.modal-thumb');
+  if (!thumbs.length) return;
+  thumbs.forEach(th => {
+    th.addEventListener('click', () => {
+      const main = $id('modalMainImg');
+      if (main) main.src = th.src;
+      thumbs.forEach(t => t.classList.remove('active'));
+      th.classList.add('active');
+    });
+  });
 }
 
 /* ===========================================================
@@ -2244,8 +2328,7 @@ function bindEvents() {
   const tipoCad = $id('p_tipoCadastro');
   if (tipoCad) tipoCad.addEventListener('change', toggleNinhadaFields);
 
-  const imagem = $id('p_imagem');
-  if (imagem) imagem.addEventListener('change', handleImagePreview);
+  initFotoSlots();
 
   const idadeAnos  = $id('p_idadeAnos');
   const idadeMesesSpin = $id('p_idadeMesesSpinner');

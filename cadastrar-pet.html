@@ -177,13 +177,25 @@
           </div>
         </div>
 
-        <!-- Imagem obrigatória + preview -->
+        <!-- Fotos do pet (até 3) -->
         <div class="form-group">
-          <label for="p_imagem">Imagem do pet * <small>(obrigatória)</small></label>
-          <input type="file" id="p_imagem" name="imagem" accept="image/*">
-          <div class="image-preview" id="imagePreview" hidden>
-            <img id="imagePreviewImg" alt="Pré-visualização do pet">
-            <span>Pré-visualização</span>
+          <label>Fotos do pet <span style="color:#e55;">*</span> <small>(1 obrigatória, até 3)</small></label>
+          <div class="foto-slots" id="fotoSlots">
+            <div class="foto-slot" id="fotoSlot0" data-slot="0">
+              <input type="file" id="fotoInput0" accept="image/jpeg,image/png,image/webp" hidden>
+              <div class="foto-slot-ph" data-slot="0"><span class="foto-slot-plus">+</span><span>Foto 1 *</span></div>
+              <div class="foto-slot-preview" hidden><img id="fotoPreviewImg0" alt="Foto 1"><button type="button" class="foto-slot-del" data-slot="0" title="Remover">×</button></div>
+            </div>
+            <div class="foto-slot" id="fotoSlot1" data-slot="1">
+              <input type="file" id="fotoInput1" accept="image/jpeg,image/png,image/webp" hidden>
+              <div class="foto-slot-ph" data-slot="1"><span class="foto-slot-plus">+</span><span>Foto 2</span></div>
+              <div class="foto-slot-preview" hidden><img id="fotoPreviewImg1" alt="Foto 2"><button type="button" class="foto-slot-del" data-slot="1" title="Remover">×</button></div>
+            </div>
+            <div class="foto-slot" id="fotoSlot2" data-slot="2">
+              <input type="file" id="fotoInput2" accept="image/jpeg,image/png,image/webp" hidden>
+              <div class="foto-slot-ph" data-slot="2"><span class="foto-slot-plus">+</span><span>Foto 3</span></div>
+              <div class="foto-slot-preview" hidden><img id="fotoPreviewImg2" alt="Foto 3"><button type="button" class="foto-slot-del" data-slot="2" title="Remover">×</button></div>
+            </div>
           </div>
         </div>
 
