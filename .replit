@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "python-3.11", "php-8.2"]
+modules = ["nodejs-20", "web", "python-3.11", "php-8.2", "postgresql-16"]
 entrypoint = "index.php"
 run = "php -S 0.0.0.0:5000 router.php"
 

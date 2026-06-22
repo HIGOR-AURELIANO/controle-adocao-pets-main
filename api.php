@@ -4,7 +4,7 @@ error_reporting(0);
 ini_set('display_errors', '0');
 
 /* ═══════════════════════════════════════════════════════
-   meu4patas — API principal (PHP 8 + SQLite + PDO)
+   meu4patas — API principal (PHP 8 + PostgreSQL/SQLite + PDO)
    Endpoint único: api.php?action=...
 ═══════════════════════════════════════════════════════ */
 
@@ -18,6 +18,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 /* Cabeçalho padrão JSON — sempre */
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -28,20 +31,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CONEXÃO PDO
+   CONEXÃO PDO — PostgreSQL
 ═══════════════════════════════════════════════════════ */
 function getPDO(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
 
-    $dbPath = __DIR__ . '/banco.db';
-    $pdo = new PDO('sqlite:' . $dbPath, null, null, [
+    $opts = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
-    ]);
-    $pdo->exec('PRAGMA foreign_keys = ON;');
-    $pdo->exec('PRAGMA journal_mode = WAL;');
+    ];
+
+    $hasPgEnv = getenv('PGHOST') || getenv('PGPORT') || getenv('PGDATABASE') || getenv('PGUSER') || getenv('PGPASSWORD');
+    if ($hasPgEnv) {
+        try {
+            $dsn = sprintf(
+                'pgsql:host=%s;port=%s;dbname=%s',
+                getenv('PGHOST')     ?: 'localhost',
+                getenv('PGPORT')     ?: '5432',
+                getenv('PGDATABASE') ?: 'postgres'
+            );
+            $pdo = new PDO($dsn, getenv('PGUSER') ?: null, getenv('PGPASSWORD') ?: null, $opts);
+            return $pdo;
+        } catch (Throwable $e) {
+            /* fallback para SQLite local quando PostgreSQL não estiver disponível */
+        }
+    }
+
+    $pdo = new PDO('sqlite:' . __DIR__ . '/banco.db', null, null, $opts);
+    $pdo->exec('PRAGMA foreign_keys = ON');
     return $pdo;
 }
 
@@ -50,121 +69,7 @@ function getPDO(): PDO {
 ═══════════════════════════════════════════════════════ */
 function initDB(): void {
     $pdo = getPDO();
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_completo         TEXT NOT NULL,
-            cpf                   TEXT NOT NULL UNIQUE,
-            cpf_limpo             TEXT NOT NULL UNIQUE,
-            email                 TEXT NOT NULL UNIQUE,
-            telefone              TEXT NOT NULL,
-            data_nascimento       TEXT NOT NULL,
-            idade                 INTEGER NOT NULL,
-            maior21               INTEGER NOT NULL DEFAULT 0,
-            cidade                TEXT NOT NULL,
-            uf                    TEXT NOT NULL,
-            bairro                TEXT NOT NULL DEFAULT '',
-            tipo_cadastro         TEXT NOT NULL DEFAULT 'adotar',
-            tipo_moradia          TEXT NOT NULL DEFAULT '',
-            possui_outros_animais TEXT NOT NULL DEFAULT 'nao',
-            ja_adotou_antes       TEXT NOT NULL DEFAULT 'nao',
-            senha_hash            TEXT NOT NULL,
-            aceita_termos         INTEGER NOT NULL DEFAULT 0,
-            criado_em             TEXT DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em         TEXT
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS adotantes (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id    INTEGER,
-            nome_completo TEXT NOT NULL,
-            telefone      TEXT NOT NULL,
-            endereco      TEXT,
-            cidade        TEXT NOT NULL,
-            uf            TEXT NOT NULL,
-            bairro        TEXT,
-            tipo_moradia  TEXT,
-            criado_em     TEXT DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em TEXT,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS pets (
-            id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_pet                TEXT NOT NULL,
-            especie                 TEXT NOT NULL,
-            raca                    TEXT NOT NULL,
-            idade_aproximada        TEXT NOT NULL,
-            idade_meses             INTEGER NOT NULL DEFAULT 0,
-            sexo                    TEXT NOT NULL,
-            cidade                  TEXT NOT NULL,
-            uf                      TEXT NOT NULL,
-            bairro                  TEXT DEFAULT '',
-            status                  TEXT NOT NULL DEFAULT 'Disponível',
-            descricao               TEXT NOT NULL,
-            temperamento            TEXT DEFAULT '',
-            lar_ideal               TEXT DEFAULT '',
-            imagem                  TEXT NOT NULL DEFAULT '',
-            responsavel_nome        TEXT NOT NULL,
-            responsavel_telefone    TEXT NOT NULL,
-            responsavel_tipo        TEXT NOT NULL DEFAULT 'Pessoa física',
-            tipo_cadastro           TEXT NOT NULL DEFAULT 'Pet individual',
-            quantidade              INTEGER DEFAULT 1,
-            leishmaniose            TEXT DEFAULT 'Não testado',
-            vermifugo               INTEGER DEFAULT 0,
-            v8_v10                  INTEGER DEFAULT 0,
-            antirrabica             INTEGER DEFAULT 0,
-            gripe_canina            INTEGER DEFAULT 0,
-            giardia                 INTEGER DEFAULT 0,
-            v4_v5                   INTEGER DEFAULT 0,
-            felv                    INTEGER DEFAULT 0,
-            castrado                INTEGER DEFAULT 0,
-            condicao_especial       TEXT DEFAULT '',
-            observacoes_veterinarias TEXT DEFAULT '',
-            usuario_doador_id       INTEGER,
-            adotante_id             INTEGER NULL,
-            criado_em               TEXT DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em           TEXT,
-            FOREIGN KEY(usuario_doador_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-            FOREIGN KEY(adotante_id)       REFERENCES adotantes(id) ON DELETE SET NULL
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS interesses (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id  INTEGER NOT NULL,
-            pet_id      INTEGER NOT NULL,
-            status      TEXT NOT NULL DEFAULT 'Interesse enviado',
-            mensagem    TEXT,
-            criado_em   TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-            FOREIGN KEY(pet_id)     REFERENCES pets(id)     ON DELETE CASCADE,
-            UNIQUE(usuario_id, pet_id)
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS recusas (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            pet_id     INTEGER NOT NULL,
-            criado_em  TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-            FOREIGN KEY(pet_id)     REFERENCES pets(id)     ON DELETE CASCADE
-        )
-    ");
-
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pets_demo_lookup ON pets (nome_pet, imagem)");
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_interesses_pet ON interesses (pet_id)");
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_recusas_pet ON recusas (pet_id)");
-
-    /* Seed de dados de teste */
+    /* Tabelas já criadas no PostgreSQL via Replit — só roda o seed */
     seedData($pdo);
 }
 
@@ -294,7 +199,7 @@ function seedDemoUsers(PDO $pdo): array {
             $update->execute([...$values, $id]);
         } else {
             $insert->execute($values);
-            $id = (int) $pdo->lastInsertId();
+            $id = (int) $pdo->query("SELECT lastval()")->fetchColumn();
         }
         $ids[$key] = $id;
     }
@@ -348,7 +253,7 @@ function seedDemoAdotantes(PDO $pdo, array $usuarios): array {
             $update->execute([...$values, $id]);
         } else {
             $insert->execute($values);
-            $id = (int) $pdo->lastInsertId();
+            $id = (int) $pdo->query("SELECT lastval()")->fetchColumn();
         }
         $ids[$key] = $id;
     }
@@ -489,45 +394,42 @@ function validarCPF(string $cpf): bool {
     return (int)$cpf[10] === $d2;
 }
 
+function parseFotos(string $imagem): array {
+    if (!$imagem) return [];
+    $decoded = json_decode($imagem, true);
+    if (is_array($decoded)) return array_values(array_filter($decoded));
+    return [$imagem];
+}
+
+function normalizePetRow(array &$row): void {
+    $fotos = parseFotos($row['imagem'] ?? '');
+    $row['fotos'] = $fotos;
+    $row['imagem'] = $fotos[0] ?? '';
+}
+
 function sanitize(string $v): string {
     return trim(strip_tags($v));
 }
 
 function input(string $key, mixed $default = ''): mixed {
-    /* Suporte a JSON body e form-data */
+    /* Suporte a JSON body e form-data.
+       Não lê php://input para multipart/form-data — o built-in server do PHP
+       pode ter o stream consumido antes de popular $_POST/$_FILES. */
     static $json = null;
     if ($json === null) {
-        $raw = file_get_contents('php://input');
-        $json = json_decode($raw ?: '{}', true) ?? [];
+        $ct = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (str_contains($ct, 'multipart/form-data')) {
+            $json = [];
+        } else {
+            $raw = file_get_contents('php://input');
+            $json = json_decode($raw ?: '{}', true) ?? [];
+        }
     }
     if (isset($json[$key])) return $json[$key];
     if (isset($_POST[$key])) return $_POST[$key];
     if (isset($_GET[$key]))  return $_GET[$key];
     return $default;
 }
-
-/**
- * Lê a imagem enviada e devolve um data URI base64 para gravar no banco.
- * Guardar a foto no próprio banco.db (versionado/persistente) evita que a
- * imagem suma em redeploy do Replit ou em "git reset". Devolve null se não
- * houver arquivo enviado; chama err() em caso de arquivo inválido.
- */
-function imagemUploadParaDataUri(): ?string {
-    if (empty($_FILES['imagem']['tmp_name']) || !is_uploaded_file($_FILES['imagem']['tmp_name']))
-        return null;
-
-    $allowed = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
-    $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
-    if (!isset($allowed[$ext])) err('Formato de imagem inválido. Use jpg, jpeg, png ou webp.');
-    if ($_FILES['imagem']['size'] > 3 * 1024 * 1024)
-        err('Imagem muito grande. Máximo 3MB.');
-
-    $bin = file_get_contents($_FILES['imagem']['tmp_name']);
-    if ($bin === false) err('Erro ao ler a imagem enviada.');
-
-    return 'data:' . $allowed[$ext] . ';base64,' . base64_encode($bin);
-}
-
 
 /* ═══════════════════════════════════════════════════════
    ROTEADOR — só executa quando chamado diretamente
@@ -549,8 +451,8 @@ try {
             $pdo = getPDO();
             ok([
                 'status' => 'ok',
-                'version' => '1.1',
-                'banco' => file_exists(__DIR__ . '/banco.db'),
+                'version' => '1.2',
+                'banco' => ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') ? 'postgresql' : 'sqlite',
                 'usuarios' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios")->fetchColumn(),
                 'adotantes' => (int) $pdo->query("SELECT COUNT(*) FROM adotantes")->fetchColumn(),
                 'pets' => (int) $pdo->query("SELECT COUNT(*) FROM pets")->fetchColumn(),
@@ -617,7 +519,7 @@ try {
             $stmt->execute([$nome,$cpf,$cpfLimpo,$email,$tel,$nascimento,$idade,$maior21,
                             $cidade,$uf,$bairro,$tipo,$moradia,$animais,$adotou,$hash,$termos]);
 
-            $id = (int)$pdo->lastInsertId();
+            $id = (int)$pdo->query("SELECT lastval()")->fetchColumn();
             $_SESSION['usuario_id']   = $id;
             $_SESSION['usuario_nome'] = $nome;
             ok(['id'=>$id,'nome_completo'=>$nome,'email'=>$email,'maior21'=>$maior21], 'Cadastro realizado com sucesso!');
@@ -703,9 +605,10 @@ try {
             $uid     = (int)input('usuario_id', 0) ?: null;
             if (!$nome || !$cidade || !$uf) err('Preencha nome, cidade e UF.');
 
-            $stmt = getPDO()->prepare("INSERT INTO adotantes (usuario_id,nome_completo,telefone,cidade,uf,bairro,tipo_moradia) VALUES (?,?,?,?,?,?,?)");
+            $pdo2 = getPDO();
+            $stmt = $pdo2->prepare("INSERT INTO adotantes (usuario_id,nome_completo,telefone,cidade,uf,bairro,tipo_moradia) VALUES (?,?,?,?,?,?,?) RETURNING id");
             $stmt->execute([$uid,$nome,$tel,$cidade,$uf,$bairro,$moradia]);
-            ok(['id'=>(int)getPDO()->lastInsertId()], 'Adotante criado.');
+            ok(['id'=>(int)$stmt->fetchColumn()], 'Adotante criado.');
         }
 
         /* ─── ATUALIZAR ADOTANTE ─── */
@@ -747,10 +650,10 @@ try {
                 ORDER BY p.criado_em DESC
             ";
             $rows = getPDO()->query($sql)->fetchAll();
-            /* Formata campos JSON-like */
             foreach ($rows as &$r) {
                 $r['temperamento_arr'] = array_filter(array_map('trim', explode(',', $r['temperamento'] ?? '')));
                 $r['lar_ideal_arr']    = array_filter(array_map('trim', explode(',', $r['lar_ideal'] ?? '')));
+                normalizePetRow($r);
             }
             ok($rows);
         }
@@ -758,12 +661,14 @@ try {
         /* ─── LISTAR PETS DISPONÍVEIS ─── */
         case 'listar_pets_disponiveis': {
             $rows = getPDO()->query("SELECT * FROM pets WHERE status='Disponível' ORDER BY criado_em DESC")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
         /* ─── LISTAR PETS ADOTADOS ─── */
         case 'listar_pets_adotados': {
             $rows = getPDO()->query("SELECT p.*,a.nome_completo AS adotante_nome FROM pets p LEFT JOIN adotantes a ON a.id=p.adotante_id WHERE p.status='Adotado'")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
@@ -775,6 +680,7 @@ try {
             $stmt->execute([$id]);
             $row = $stmt->fetch();
             if (!$row) err('Pet não encontrado.', 404);
+            normalizePetRow($row);
             ok($row);
         }
 
@@ -818,22 +724,26 @@ try {
             /* Impedir usuário comum de cadastrar como Adotado */
             if ($status === 'Adotado') $status = 'Disponível';
 
-            /* Responsável: se não informado, usa o cadastro de quem está logado */
-            if ($resNome === '' || $resTel === '') {
-                $du = $pdo->prepare("SELECT nome_completo, telefone FROM usuarios WHERE id=?");
-                $du->execute([$s['id']]);
-                if ($dadosUsuario = $du->fetch()) {
-                    if ($resNome === '') $resNome = $dadosUsuario['nome_completo'];
-                    if ($resTel  === '') $resTel  = $dadosUsuario['telefone'];
-                }
+            /* Upload de imagens (até 3) */
+            $allowed    = ['jpg','jpeg','png','webp'];
+            $uploadsDir = __DIR__ . '/uploads';
+            if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
+            $fotos = [];
+            for ($fi = 0; $fi < 3; $fi++) {
+                $key = "imagem_$fi";
+                if (empty($_FILES[$key]['tmp_name'])) continue;
+                $ext = strtolower(pathinfo($_FILES[$key]['name'], PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowed)) err('Formato inválido na foto ' . ($fi+1) . '. Use jpg, jpeg, png ou webp.');
+                if ($_FILES[$key]['size'] > 5 * 1024 * 1024) err('Foto ' . ($fi+1) . ' muito grande. Máximo 5MB por foto.');
+                $fname = 'pet_' . uniqid() . '.' . $ext;
+                if (!move_uploaded_file($_FILES[$key]['tmp_name'], $uploadsDir . '/' . $fname))
+                    err('Erro ao salvar foto ' . ($fi+1) . '.');
+                $fotos[] = 'uploads/' . $fname;
             }
-
-            /* Imagem gravada no banco (data URI) — persiste em redeploy/reset */
-            $imagem = imagemUploadParaDataUri();
-            if ($imagem === null) {
-                /* Imagem padrão por espécie quando nenhuma foto é enviada */
-                $imagem = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
+            if (empty($fotos)) {
+                $fotos[] = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
             }
+            $imagem = count($fotos) === 1 ? $fotos[0] : json_encode($fotos);
 
             $stmt = $pdo->prepare("
                 INSERT INTO pets
@@ -849,7 +759,8 @@ try {
                             $resNome,$resTel,$resTipo,$tipoCad,$qtd,
                             $lish,$verm,$v8,$anti,$grip,$giar,$v4,$felv,$cast,
                             $cond,$obs,$s['id']]);
-            ok(['id'=>(int)$pdo->lastInsertId(),'imagem'=>$imagem], 'Pet cadastrado com sucesso!');
+            $newPetId = (int)$pdo->query("SELECT lastval()")->fetchColumn();
+            ok(['id'=>$newPetId,'imagem'=>$imagem], 'Pet cadastrado com sucesso!');
         }
 
         /* ─── ATUALIZAR PET ─── */
@@ -888,9 +799,25 @@ try {
             $obs     = sanitize((string)input('observacoes_veterinarias', $existing['observacoes_veterinarias']));
             $cast    = (int)(bool)input('castrado', $existing['castrado']);
 
-            /* Nova foto (data URI no banco) ou mantém a imagem atual */
-            $novaImagem = imagemUploadParaDataUri();
-            $imagem = $novaImagem ?? $existing['imagem'];
+            /* Fotos existentes a manter + novas */
+            $fotosExistentes = json_decode((string)input('fotos_existentes', '[]'), true);
+            $fotos = is_array($fotosExistentes) ? array_values(array_filter($fotosExistentes, 'is_string')) : [];
+            $allowedUpd    = ['jpg','jpeg','png','webp'];
+            $uploadsDirUpd = __DIR__ . '/uploads';
+            if (!is_dir($uploadsDirUpd)) mkdir($uploadsDirUpd, 0755, true);
+            for ($fi = 0; $fi < 3; $fi++) {
+                $key = "imagem_$fi";
+                if (empty($_FILES[$key]['tmp_name'])) continue;
+                $ext = strtolower(pathinfo($_FILES[$key]['name'], PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowedUpd)) continue;
+                if ($_FILES[$key]['size'] > 5 * 1024 * 1024) continue;
+                $fname = 'pet_' . uniqid() . '.' . $ext;
+                if (move_uploaded_file($_FILES[$key]['tmp_name'], $uploadsDirUpd . '/' . $fname))
+                    $fotos[] = 'uploads/' . $fname;
+            }
+            $fotos = array_slice(array_values(array_unique($fotos)), 0, 3);
+            if (empty($fotos)) $fotos = parseFotos($existing['imagem']);
+            $imagem = count($fotos) === 1 ? $fotos[0] : json_encode($fotos);
 
             $pdo->prepare("
                 UPDATE pets SET nome_pet=?,especie=?,raca=?,idade_aproximada=?,idade_meses=?,
@@ -940,7 +867,7 @@ try {
             if ($pet['status'] !== 'Disponível') err('Este pet não está disponível para adoção.');
 
             /* Inserir interesse (não altera status do pet) */
-            $stmt = $pdo->prepare("INSERT OR IGNORE INTO interesses (usuario_id,pet_id,mensagem) VALUES (?,?,?)");
+            $stmt = $pdo->prepare("INSERT INTO interesses (usuario_id,pet_id,mensagem) VALUES (?,?,?) ON CONFLICT DO NOTHING");
             $stmt->execute([$s['id'], $petId, $msg]);
             ok(null, 'Interesse registrado com sucesso!');
         }
@@ -977,9 +904,11 @@ try {
             $novoStatus  = sanitize((string)input('status', ''));
             if (!$interesseId) err('Interesse inválido.');
 
-            $permitidos = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Adoção concluída', 'Recusado'];
+            /* "Adoção concluída" só é definida pelo fluxo de confirmar_doacao,
+               garantindo que o adotante seja registrado e os demais interesses recusados. */
+            $permitidos = ['Interesse enviado', 'Em conversa', 'Aprovado', 'Recusado'];
             if (!in_array($novoStatus, $permitidos, true))
-                err('Status de adoção inválido.');
+                err('Status de adoção inválido. Para concluir a adoção, use "Confirmar doação".');
 
             /* Confirmar que o interesse pertence a um pet do usuário logado */
             $stmt = $pdo->prepare("
@@ -996,14 +925,6 @@ try {
 
             $pdo->prepare("UPDATE interesses SET status=? WHERE id=?")
                 ->execute([$novoStatus, $interesseId]);
-
-            /* Concluir a adoção também atualiza o status do pet */
-            if ($novoStatus === 'Adoção concluída') {
-                $pdo->prepare("UPDATE pets SET status='Adotado', atualizado_em=CURRENT_TIMESTAMP WHERE id=?")
-                    ->execute([(int)$row['pet_id']]);
-            } elseif ($novoStatus === 'Recusado') {
-                /* Recusa de uma adoção não altera o status do pet */
-            }
 
             ok(null, 'Andamento da adoção atualizado.');
         }
@@ -1045,7 +966,7 @@ try {
                     (int)$row['usuario_id'], $row['nome_completo'], $row['telefone'],
                     $row['cidade'], $row['uf'], $row['bairro'], $row['tipo_moradia']
                 ]);
-                $adotanteId = (int)$pdo->lastInsertId();
+                $adotanteId = (int)$pdo->query("SELECT lastval()")->fetchColumn();
 
                 /* Marca o pet como adotado e vincula o adotante */
                 $pdo->prepare("UPDATE pets SET status='Adotado', adotante_id=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?")
@@ -1073,7 +994,7 @@ try {
             if (!$petId) err('Pet inválido.');
             $pdo = getPDO();
             $pdo->prepare("DELETE FROM interesses WHERE usuario_id=? AND pet_id=?")->execute([$s['id'], $petId]);
-            $pdo->prepare("INSERT OR IGNORE INTO recusas (usuario_id,pet_id) VALUES (?,?)")->execute([$s['id'], $petId]);
+            $pdo->prepare("INSERT INTO recusas (usuario_id,pet_id) VALUES (?,?) ON CONFLICT DO NOTHING")->execute([$s['id'], $petId]);
             ok(null, 'Recusa registrada.');
         }
 
