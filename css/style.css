@@ -269,8 +269,11 @@ a { color: var(--verde-claro); }
    HERO
 ───────────────────────────────────────── */
 .hero {
-  background: var(--verde);
-  padding: 76px 40px 96px;
+  background:
+    radial-gradient(820px 520px at 88% -12%, rgba(244, 132, 95, 0.22), transparent 58%),
+    radial-gradient(680px 620px at 6% 118%, rgba(74, 140, 101, 0.38), transparent 56%),
+    linear-gradient(158deg, #214733 0%, var(--verde) 52%, #11271c 100%);
+  padding: 84px 40px 104px;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 56px;
@@ -278,29 +281,60 @@ a { color: var(--verde-claro); }
   position: relative;
   overflow: hidden;
 }
+/* textura sutil de pontos para dar profundidade premium */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(247, 243, 236, 0.06) 1.2px, transparent 1.3px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(120% 120% at 70% 10%, #000 30%, transparent 75%);
+          mask-image: radial-gradient(120% 120% at 70% 10%, #000 30%, transparent 75%);
+}
+.hero-text,
+.hero-illustration { position: relative; z-index: 1; }
 .hero::after {
   content: '';
   position: absolute;
   bottom: -1px; left: 0; right: 0;
-  height: 56px;
+  height: 64px;
+  z-index: 1;
   background: var(--creme);
-  clip-path: ellipse(58% 100% at 50% 100%);
+  clip-path: ellipse(62% 100% at 50% 100%);
 }
 
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(247, 243, 236, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(247, 243, 236, 0.24);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
   color: var(--creme);
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 7px 16px;
+  padding: 8px 18px;
   border-radius: 100px;
   margin-bottom: 22px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+/* pontinho pulsante de "ao vivo" no eyebrow */
+.hero-eyebrow::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--laranja);
+  box-shadow: 0 0 0 0 rgba(244, 132, 95, 0.6);
+  animation: eyebrowPulse 2.2s ease-in-out infinite;
+}
+@keyframes eyebrowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 132, 95, 0.6); }
+  50%      { box-shadow: 0 0 0 6px rgba(244, 132, 95, 0); }
 }
 
 /* Patinha 🐾 em branco puro — para dar destaque sobre fundos escuros */
@@ -341,12 +375,34 @@ a { color: var(--verde-claro); }
   gap: 14px;
   flex-wrap: wrap;
 }
+/* CTA principal premium: gradiente, brilho e leve realce no hover */
+.hero-actions .btn-primary {
+  background: linear-gradient(135deg, #ff9b73 0%, var(--laranja) 55%, var(--laranja-escuro) 100%);
+  box-shadow: 0 12px 28px rgba(217, 98, 61, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.hero-actions .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(217, 98, 61, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
 
 .hero-stats {
   display: flex;
-  gap: 36px;
-  margin-top: 44px;
+  gap: 0;
+  margin-top: 48px;
   flex-wrap: wrap;
+}
+.hero-stats > div {
+  padding: 0 30px;
+  position: relative;
+}
+.hero-stats > div:first-child { padding-left: 0; }
+.hero-stats > div:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 1px; height: 38px;
+  background: linear-gradient(180deg, transparent, rgba(247, 243, 236, 0.22), transparent);
 }
 .stat-num {
   font-family: 'Fraunces', serif;
@@ -376,16 +432,34 @@ a { color: var(--verde-claro); }
   align-items: center;
   position: relative;
 }
+/* halo luminoso difuso atrás do card */
+.hero-illustration::before {
+  content: '';
+  position: absolute;
+  width: 360px; height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 132, 95, 0.45), rgba(244, 132, 95, 0) 68%);
+  filter: blur(8px);
+  z-index: 0;
+  animation: haloPulse 7s ease-in-out infinite;
+}
+@keyframes haloPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
 .hero-pet-card {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 24px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+          backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 26px;
   padding: 20px;
   width: 300px;
   position: relative;
+  z-index: 1;
   transform: rotate(2.5deg);
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.34),
+              inset 0 1px 0 rgba(255, 255, 255, 0.28);
   animation: heroCardIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both,
              heroFloat 6s ease-in-out 0.7s infinite;
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
@@ -435,7 +509,9 @@ a { color: var(--verde-claro); }
 @media (prefers-reduced-motion: reduce) {
   .hero-pet-card,
   .hero-pet-card::before,
-  .hero-pet-badge { animation: none; }
+  .hero-pet-badge,
+  .hero-eyebrow::before,
+  .hero-illustration::before { animation: none; }
   .hero-pet-card { transform: rotate(2.5deg); }
 }
 
