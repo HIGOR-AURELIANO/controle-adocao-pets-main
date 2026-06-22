@@ -1,3 +1,4 @@
 - [Donation flow invariant](donation-flow-invariant.md) — pet "Adotado"/"Adoção concluída" only via confirmar_doacao, never the status dropdown (it skips adotante + refusing rivals).
 - [Pet image display](pet-image-display.md) — aspect-ratio:1/1 on the CONTAINER (not the img) + img height:100% object-fit:cover; img-level aspect-ratio = iOS Safari blank-photo bug Chromium tests miss.
 - [Stale-cache reports](stale-cache-reports.md) — unreproducible "photos gone"/"update not showing" = browser cache; bump ?v=fix-vN in all HTML, don't touch layout.
+- [php-s multipart curl bug](php-s-multipart-curl.md) — php -S built-in server corrupts $_POST when curl sends binary files via multipart; browser FormData works fine. Don't trust curl file upload tests against php -S.
