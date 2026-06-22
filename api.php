@@ -31,20 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CONEXÃO PDO
+   CONEXÃO PDO — PostgreSQL
 ═══════════════════════════════════════════════════════ */
 function getPDO(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
 
-    $dbPath = __DIR__ . '/banco.db';
-    $pdo = new PDO('sqlite:' . $dbPath, null, null, [
+    $dsn = sprintf(
+        'pgsql:host=%s;port=%s;dbname=%s',
+        getenv('PGHOST')     ?: 'localhost',
+        getenv('PGPORT')     ?: '5432',
+        getenv('PGDATABASE') ?: 'postgres'
+    );
+    $pdo = new PDO($dsn, getenv('PGUSER'), getenv('PGPASSWORD'), [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
-    $pdo->exec('PRAGMA foreign_keys = ON;');
-    $pdo->exec('PRAGMA journal_mode = WAL;');
     return $pdo;
 }
 
@@ -53,121 +56,7 @@ function getPDO(): PDO {
 ═══════════════════════════════════════════════════════ */
 function initDB(): void {
     $pdo = getPDO();
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_completo         TEXT NOT NULL,
-            cpf                   TEXT NOT NULL UNIQUE,
-            cpf_limpo             TEXT NOT NULL UNIQUE,
-            email                 TEXT NOT NULL UNIQUE,
-            telefone              TEXT NOT NULL,
-            data_nascimento       TEXT NOT NULL,
-            idade                 INTEGER NOT NULL,
-            maior21               INTEGER NOT NULL DEFAULT 0,
-            cidade                TEXT NOT NULL,
-            uf                    TEXT NOT NULL,
-            bairro                TEXT NOT NULL DEFAULT '',
-            tipo_cadastro         TEXT NOT NULL DEFAULT 'adotar',
-            tipo_moradia          TEXT NOT NULL DEFAULT '',
-            possui_outros_animais TEXT NOT NULL DEFAULT 'nao',
-            ja_adotou_antes       TEXT NOT NULL DEFAULT 'nao',
-            senha_hash            TEXT NOT NULL,
-            aceita_termos         INTEGER NOT NULL DEFAULT 0,
-            criado_em             TEXT DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em         TEXT
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS adotantes (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id    INTEGER,
-            nome_completo TEXT NOT NULL,
-            telefone      TEXT NOT NULL,
-            endereco      TEXT,
-            cidade        TEXT NOT NULL,
-            uf            TEXT NOT NULL,
-            bairro        TEXT,
-            tipo_moradia  TEXT,
-            criado_em     TEXT DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em TEXT,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS pets (
-            id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_pet                TEXT NOT NULL,
-            especie                 TEXT NOT NULL,
-            raca                    TEXT NOT NULL,
-            idade_aproximada        TEXT NOT NULL,
-            idade_meses             INTEGER NOT NULL DEFAULT 0,
-            sexo                    TEXT NOT NULL,
-            cidade                  TEXT NOT NULL,
-            uf                      TEXT NOT NULL,
-            bairro                  TEXT DEFAULT '',
-            status                  TEXT NOT NULL DEFAULT 'Disponível',
-            descricao               TEXT NOT NULL,
-            temperamento            TEXT DEFAULT '',
-            lar_ideal               TEXT DEFAULT '',
-            imagem                  TEXT NOT NULL DEFAULT '',
-            responsavel_nome        TEXT NOT NULL,
-            responsavel_telefone    TEXT NOT NULL,
-            responsavel_tipo        TEXT NOT NULL DEFAULT 'Pessoa física',
-            tipo_cadastro           TEXT NOT NULL DEFAULT 'Pet individual',
-            quantidade              INTEGER DEFAULT 1,
-            leishmaniose            TEXT DEFAULT 'Não testado',
-            vermifugo               INTEGER DEFAULT 0,
-            v8_v10                  INTEGER DEFAULT 0,
-            antirrabica             INTEGER DEFAULT 0,
-            gripe_canina            INTEGER DEFAULT 0,
-            giardia                 INTEGER DEFAULT 0,
-            v4_v5                   INTEGER DEFAULT 0,
-            felv                    INTEGER DEFAULT 0,
-            castrado                INTEGER DEFAULT 0,
-            condicao_especial       TEXT DEFAULT '',
-            observacoes_veterinarias TEXT DEFAULT '',
-            usuario_doador_id       INTEGER,
-            adotante_id             INTEGER NULL,
-            criado_em               TEXT DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em           TEXT,
-            FOREIGN KEY(usuario_doador_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-            FOREIGN KEY(adotante_id)       REFERENCES adotantes(id) ON DELETE SET NULL
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS interesses (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id  INTEGER NOT NULL,
-            pet_id      INTEGER NOT NULL,
-            status      TEXT NOT NULL DEFAULT 'Interesse enviado',
-            mensagem    TEXT,
-            criado_em   TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-            FOREIGN KEY(pet_id)     REFERENCES pets(id)     ON DELETE CASCADE,
-            UNIQUE(usuario_id, pet_id)
-        )
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS recusas (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            pet_id     INTEGER NOT NULL,
-            criado_em  TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-            FOREIGN KEY(pet_id)     REFERENCES pets(id)     ON DELETE CASCADE
-        )
-    ");
-
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pets_demo_lookup ON pets (nome_pet, imagem)");
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_interesses_pet ON interesses (pet_id)");
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_recusas_pet ON recusas (pet_id)");
-
-    /* Seed de dados de teste */
+    /* Tabelas já criadas no PostgreSQL via Replit — só roda o seed */
     seedData($pdo);
 }
 
@@ -297,7 +186,7 @@ function seedDemoUsers(PDO $pdo): array {
             $update->execute([...$values, $id]);
         } else {
             $insert->execute($values);
-            $id = (int) $pdo->lastInsertId();
+            $id = (int) $pdo->query("SELECT lastval()")->fetchColumn();
         }
         $ids[$key] = $id;
     }
@@ -351,7 +240,7 @@ function seedDemoAdotantes(PDO $pdo, array $usuarios): array {
             $update->execute([...$values, $id]);
         } else {
             $insert->execute($values);
-            $id = (int) $pdo->lastInsertId();
+            $id = (int) $pdo->query("SELECT lastval()")->fetchColumn();
         }
         $ids[$key] = $id;
     }
@@ -529,8 +418,8 @@ try {
             $pdo = getPDO();
             ok([
                 'status' => 'ok',
-                'version' => '1.1',
-                'banco' => file_exists(__DIR__ . '/banco.db'),
+                'version' => '1.2',
+                'banco' => 'postgresql',
                 'usuarios' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios")->fetchColumn(),
                 'adotantes' => (int) $pdo->query("SELECT COUNT(*) FROM adotantes")->fetchColumn(),
                 'pets' => (int) $pdo->query("SELECT COUNT(*) FROM pets")->fetchColumn(),
@@ -597,7 +486,7 @@ try {
             $stmt->execute([$nome,$cpf,$cpfLimpo,$email,$tel,$nascimento,$idade,$maior21,
                             $cidade,$uf,$bairro,$tipo,$moradia,$animais,$adotou,$hash,$termos]);
 
-            $id = (int)$pdo->lastInsertId();
+            $id = (int)$pdo->query("SELECT lastval()")->fetchColumn();
             $_SESSION['usuario_id']   = $id;
             $_SESSION['usuario_nome'] = $nome;
             ok(['id'=>$id,'nome_completo'=>$nome,'email'=>$email,'maior21'=>$maior21], 'Cadastro realizado com sucesso!');
@@ -683,9 +572,10 @@ try {
             $uid     = (int)input('usuario_id', 0) ?: null;
             if (!$nome || !$cidade || !$uf) err('Preencha nome, cidade e UF.');
 
-            $stmt = getPDO()->prepare("INSERT INTO adotantes (usuario_id,nome_completo,telefone,cidade,uf,bairro,tipo_moradia) VALUES (?,?,?,?,?,?,?)");
+            $pdo2 = getPDO();
+            $stmt = $pdo2->prepare("INSERT INTO adotantes (usuario_id,nome_completo,telefone,cidade,uf,bairro,tipo_moradia) VALUES (?,?,?,?,?,?,?) RETURNING id");
             $stmt->execute([$uid,$nome,$tel,$cidade,$uf,$bairro,$moradia]);
-            ok(['id'=>(int)getPDO()->lastInsertId()], 'Adotante criado.');
+            ok(['id'=>(int)$stmt->fetchColumn()], 'Adotante criado.');
         }
 
         /* ─── ATUALIZAR ADOTANTE ─── */
@@ -833,7 +723,8 @@ try {
                             $resNome,$resTel,$resTipo,$tipoCad,$qtd,
                             $lish,$verm,$v8,$anti,$grip,$giar,$v4,$felv,$cast,
                             $cond,$obs,$s['id']]);
-            ok(['id'=>(int)$pdo->lastInsertId(),'imagem'=>$imagem], 'Pet cadastrado com sucesso!');
+            $newPetId = (int)$pdo->query("SELECT lastval()")->fetchColumn();
+            ok(['id'=>$newPetId,'imagem'=>$imagem], 'Pet cadastrado com sucesso!');
         }
 
         /* ─── ATUALIZAR PET ─── */
@@ -932,7 +823,7 @@ try {
             if ($pet['status'] !== 'Disponível') err('Este pet não está disponível para adoção.');
 
             /* Inserir interesse (não altera status do pet) */
-            $stmt = $pdo->prepare("INSERT OR IGNORE INTO interesses (usuario_id,pet_id,mensagem) VALUES (?,?,?)");
+            $stmt = $pdo->prepare("INSERT INTO interesses (usuario_id,pet_id,mensagem) VALUES (?,?,?) ON CONFLICT DO NOTHING");
             $stmt->execute([$s['id'], $petId, $msg]);
             ok(null, 'Interesse registrado com sucesso!');
         }
@@ -1031,7 +922,7 @@ try {
                     (int)$row['usuario_id'], $row['nome_completo'], $row['telefone'],
                     $row['cidade'], $row['uf'], $row['bairro'], $row['tipo_moradia']
                 ]);
-                $adotanteId = (int)$pdo->lastInsertId();
+                $adotanteId = (int)$pdo->query("SELECT lastval()")->fetchColumn();
 
                 /* Marca o pet como adotado e vincula o adotante */
                 $pdo->prepare("UPDATE pets SET status='Adotado', adotante_id=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?")
@@ -1059,7 +950,7 @@ try {
             if (!$petId) err('Pet inválido.');
             $pdo = getPDO();
             $pdo->prepare("DELETE FROM interesses WHERE usuario_id=? AND pet_id=?")->execute([$s['id'], $petId]);
-            $pdo->prepare("INSERT OR IGNORE INTO recusas (usuario_id,pet_id) VALUES (?,?)")->execute([$s['id'], $petId]);
+            $pdo->prepare("INSERT INTO recusas (usuario_id,pet_id) VALUES (?,?) ON CONFLICT DO NOTHING")->execute([$s['id'], $petId]);
             ok(null, 'Recusa registrada.');
         }
 
