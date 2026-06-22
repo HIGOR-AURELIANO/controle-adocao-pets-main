@@ -109,12 +109,20 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="p_idade">Idade aproximada *</label>
-            <input type="text" id="p_idade" name="idade" placeholder="Ex.: 2 anos">
-          </div>
-          <div class="form-group">
-            <label for="p_idadeMeses">Idade em meses *</label>
-            <input type="number" id="p_idadeMeses" name="idadeMeses" min="0" placeholder="Ex.: 24">
+            <label for="p_idadeAnos">Idade aproximada *</label>
+            <input type="hidden" id="p_idade" name="idade">
+            <input type="hidden" id="p_idadeMeses" name="idadeMeses">
+            <div class="idade-selector">
+              <div class="idade-spinner-group">
+                <span class="idade-sub-label">Anos</span>
+                <input type="number" id="p_idadeAnos" min="0" max="25" value="0">
+              </div>
+              <div class="idade-spinner-group">
+                <span class="idade-sub-label">Meses</span>
+                <input type="number" id="p_idadeMesesSpinner" min="0" max="11" value="0">
+              </div>
+              <div class="idade-resultado" id="idadeResultado">Menos de 1 mês · 0 meses</div>
+            </div>
           </div>
           <div class="form-group">
             <label for="p_sexo">Sexo *</label>
@@ -169,13 +177,25 @@
           </div>
         </div>
 
-        <!-- Imagem obrigatória + preview -->
+        <!-- Fotos obrigatórias -->
         <div class="form-group">
-          <label for="p_imagem">Imagem do pet * <small>(obrigatória)</small></label>
-          <input type="file" id="p_imagem" name="imagem" accept="image/*">
-          <div class="image-preview" id="imagePreview" hidden>
-            <img id="imagePreviewImg" alt="Pré-visualização do pet">
-            <span>Pré-visualização</span>
+          <label>Fotos do pet * <small>(até 3 imagens)</small></label>
+          <div class="foto-slots" id="fotoSlots">
+            <div class="foto-slot" id="fotoSlot0" data-slot="0">
+              <input type="file" id="fotoInput0" accept="image/*" hidden>
+              <div class="foto-slot-ph"><span class="foto-slot-plus">+</span><span>Foto 1 *</span></div>
+              <div class="foto-slot-preview" hidden><img id="fotoPreviewImg0" alt="Foto 1"><button type="button" class="foto-slot-del" title="Remover">×</button></div>
+            </div>
+            <div class="foto-slot" id="fotoSlot1" data-slot="1">
+              <input type="file" id="fotoInput1" accept="image/*" hidden>
+              <div class="foto-slot-ph"><span class="foto-slot-plus">+</span><span>Foto 2</span></div>
+              <div class="foto-slot-preview" hidden><img id="fotoPreviewImg1" alt="Foto 2"><button type="button" class="foto-slot-del" title="Remover">×</button></div>
+            </div>
+            <div class="foto-slot" id="fotoSlot2" data-slot="2">
+              <input type="file" id="fotoInput2" accept="image/*" hidden>
+              <div class="foto-slot-ph"><span class="foto-slot-plus">+</span><span>Foto 3</span></div>
+              <div class="foto-slot-preview" hidden><img id="fotoPreviewImg2" alt="Foto 3"><button type="button" class="foto-slot-del" title="Remover">×</button></div>
+            </div>
           </div>
         </div>
 

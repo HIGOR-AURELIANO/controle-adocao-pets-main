@@ -21,6 +21,9 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -444,13 +447,19 @@ function demoPets(): array {
    HELPERS
 ═══════════════════════════════════════════════════════ */
 function ok(mixed $data = null, string $msg = 'Operação realizada com sucesso'): void {
-    echo json_encode(['success'=>true,'message'=>$msg,'data'=>$data], JSON_UNESCAPED_UNICODE);
+    echo json_encode(
+        ['success'=>true,'message'=>$msg,'data'=>$data],
+        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
+    );
     exit;
 }
 
 function err(string $msg, int $code = 400): void {
     http_response_code($code);
-    echo json_encode(['success'=>false,'message'=>$msg,'data'=>null], JSON_UNESCAPED_UNICODE);
+    echo json_encode(
+        ['success'=>false,'message'=>$msg,'data'=>null],
+        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
+    );
     exit;
 }
 
@@ -489,43 +498,82 @@ function validarCPF(string $cpf): bool {
     return (int)$cpf[10] === $d2;
 }
 
+function parseFotos(?string $imagem): array {
+    $imagem = trim((string)$imagem);
+    if ($imagem === '') return [];
+    $decoded = json_decode($imagem, true);
+    if (is_array($decoded)) return array_values(array_filter(array_map('strval', $decoded)));
+    return [$imagem];
+}
+
+function normalizePetRow(array &$row): void {
+    $fotos = parseFotos($row['imagem'] ?? '');
+    $row['fotos'] = $fotos;
+    $row['imagem'] = $fotos[0] ?? '';
+    $row['temperamento_arr'] = array_filter(array_map('trim', explode(',', (string)($row['temperamento'] ?? ''))));
+    $row['lar_ideal_arr'] = array_filter(array_map('trim', explode(',', (string)($row['lar_ideal'] ?? ''))));
+}
+
 function sanitize(string $v): string {
     return trim(strip_tags($v));
 }
 
 function input(string $key, mixed $default = ''): mixed {
-    /* Suporte a JSON body e form-data */
+    /* Suporte a JSON body e form-data.
+       Prioriza $_POST/$_GET para não consumir php://input em requests multipart. */
+    if (isset($_POST[$key])) return $_POST[$key];
+    if (isset($_GET[$key]))  return $_GET[$key];
+
     static $json = null;
     if ($json === null) {
         $raw = file_get_contents('php://input');
         $json = json_decode($raw ?: '{}', true) ?? [];
     }
     if (isset($json[$key])) return $json[$key];
-    if (isset($_POST[$key])) return $_POST[$key];
-    if (isset($_GET[$key]))  return $_GET[$key];
     return $default;
 }
 
 /**
- * Lê a imagem enviada e devolve um data URI base64 para gravar no banco.
- * Guardar a foto no próprio banco.db (versionado/persistente) evita que a
- * imagem suma em redeploy do Replit ou em "git reset". Devolve null se não
- * houver arquivo enviado; chama err() em caso de arquivo inválido.
+ * Lê uma imagem enviada e devolve um data URI base64 para gravar no banco.
+ * Guardar as fotos no próprio banco.db (versionado/persistente) evita que elas
+ * sumam em redeploy do Replit ou em "git reset". Devolve null se não houver
+ * arquivo enviado; chama err() em caso de arquivo inválido.
  */
-function imagemUploadParaDataUri(): ?string {
-    if (empty($_FILES['imagem']['tmp_name']) || !is_uploaded_file($_FILES['imagem']['tmp_name']))
+function imagemUploadParaDataUri(?array $file = null): ?string {
+    $file = $file ?? ($_FILES['imagem'] ?? null);
+    if (!is_array($file)) return null;
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return null;
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK)
+        err('Não foi possível processar a foto enviada.');
+    if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name']))
         return null;
 
     $allowed = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
-    $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
+    $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
     if (!isset($allowed[$ext])) err('Formato de imagem inválido. Use jpg, jpeg, png ou webp.');
-    if ($_FILES['imagem']['size'] > 3 * 1024 * 1024)
-        err('Imagem muito grande. Máximo 3MB.');
+    if (($file['size'] ?? 0) > 5 * 1024 * 1024)
+        err('Imagem muito grande. Máximo 5MB por foto.');
 
-    $bin = file_get_contents($_FILES['imagem']['tmp_name']);
+    $bin = file_get_contents($file['tmp_name']);
     if ($bin === false) err('Erro ao ler a imagem enviada.');
 
     return 'data:' . $allowed[$ext] . ';base64,' . base64_encode($bin);
+}
+
+function imagensUploadParaDataUri(): array {
+    $keys = [];
+    for ($i = 0; $i < 3; $i++) {
+        $key = "imagem_$i";
+        if (isset($_FILES[$key])) $keys[] = $key;
+    }
+    if ($keys === [] && isset($_FILES['imagem'])) $keys[] = 'imagem';
+
+    $fotos = [];
+    foreach ($keys as $key) {
+        $imagem = imagemUploadParaDataUri($_FILES[$key] ?? null);
+        if ($imagem !== null) $fotos[] = $imagem;
+    }
+    return array_slice($fotos, 0, 3);
 }
 
 
@@ -747,23 +795,21 @@ try {
                 ORDER BY p.criado_em DESC
             ";
             $rows = getPDO()->query($sql)->fetchAll();
-            /* Formata campos JSON-like */
-            foreach ($rows as &$r) {
-                $r['temperamento_arr'] = array_filter(array_map('trim', explode(',', $r['temperamento'] ?? '')));
-                $r['lar_ideal_arr']    = array_filter(array_map('trim', explode(',', $r['lar_ideal'] ?? '')));
-            }
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
         /* ─── LISTAR PETS DISPONÍVEIS ─── */
         case 'listar_pets_disponiveis': {
             $rows = getPDO()->query("SELECT * FROM pets WHERE status='Disponível' ORDER BY criado_em DESC")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
         /* ─── LISTAR PETS ADOTADOS ─── */
         case 'listar_pets_adotados': {
             $rows = getPDO()->query("SELECT p.*,a.nome_completo AS adotante_nome FROM pets p LEFT JOIN adotantes a ON a.id=p.adotante_id WHERE p.status='Adotado'")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
@@ -775,6 +821,7 @@ try {
             $stmt->execute([$id]);
             $row = $stmt->fetch();
             if (!$row) err('Pet não encontrado.', 404);
+            normalizePetRow($row);
             ok($row);
         }
 
@@ -828,12 +875,12 @@ try {
                 }
             }
 
-            /* Imagem gravada no banco (data URI) — persiste em redeploy/reset */
-            $imagem = imagemUploadParaDataUri();
-            if ($imagem === null) {
-                /* Imagem padrão por espécie quando nenhuma foto é enviada */
-                $imagem = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
+            /* Até 3 fotos gravadas no banco (data URI) — persiste em redeploy/reset */
+            $fotos = imagensUploadParaDataUri();
+            if ($fotos === []) {
+                $fotos[] = $especie === 'Gato' ? 'assets/pet-mel.jpg' : 'assets/luna-hero.png';
             }
+            $imagem = count($fotos) === 1 ? $fotos[0] : json_encode($fotos, JSON_UNESCAPED_SLASHES);
 
             $stmt = $pdo->prepare("
                 INSERT INTO pets
@@ -888,9 +935,15 @@ try {
             $obs     = sanitize((string)input('observacoes_veterinarias', $existing['observacoes_veterinarias']));
             $cast    = (int)(bool)input('castrado', $existing['castrado']);
 
-            /* Nova foto (data URI no banco) ou mantém a imagem atual */
-            $novaImagem = imagemUploadParaDataUri();
-            $imagem = $novaImagem ?? $existing['imagem'];
+            /* Mantém fotos existentes + adiciona novas fotos (até 3) */
+            $fotosExistentes = json_decode((string)input('fotos_existentes', '[]'), true);
+            $fotos = is_array($fotosExistentes)
+                ? array_values(array_filter(array_map('strval', $fotosExistentes)))
+                : [];
+            $fotos = array_merge($fotos, imagensUploadParaDataUri());
+            $fotos = array_slice(array_values(array_unique(array_filter($fotos))), 0, 3);
+            if ($fotos === []) $fotos = parseFotos((string)$existing['imagem']);
+            $imagem = count($fotos) === 1 ? $fotos[0] : json_encode($fotos, JSON_UNESCAPED_SLASHES);
 
             $pdo->prepare("
                 UPDATE pets SET nome_pet=?,especie=?,raca=?,idade_aproximada=?,idade_meses=?,
@@ -1114,6 +1167,7 @@ try {
 
             /* Para cada pet, buscar interessados com os dados do cadastro */
             foreach ($pets as &$pet) {
+                normalizePetRow($pet);
                 $si = $pdo->prepare("
                     SELECT i.*,
                            u.nome_completo, u.email, u.telefone,
@@ -1142,6 +1196,7 @@ try {
                 LEFT JOIN adotantes a ON a.id=p.adotante_id
                 ORDER BY p.status,p.nome_pet
             ")->fetchAll();
+            foreach ($rows as &$r) normalizePetRow($r);
             ok($rows);
         }
 
