@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>meu4patas — Adoção e doação responsável de pets</title>
   <meta name="description" content="meu4patas conecta animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.">
-  <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=adocao-3">
+  <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=logo-final-1">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- Leaflet (biblioteca open-source de mapa interativo) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/style.css?v=adocao-3">
+  <link rel="stylesheet" href="css/style.css?v=fix-v20">
 </head>
 <body>
 
   <!-- ───────────── TOP BAR ───────────── -->
   <header class="topbar">
     <a class="nav-logo" href="#inicio" aria-label="meu4patas - início">
-      <img src="assets/logo-meu4patas.png?v=adocao-3" alt="meu4patas" height="38">
+      <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas" height="38">
     </a>
 
     <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">
@@ -32,8 +32,8 @@
         <li><a href="#requisitos">Requisitos</a></li>
       </ul>
       <div class="nav-user" id="navUser">
-        <a href="login.html" class="btn-login" id="btnLogin">Entrar</a>
         <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
+        <a href="login.html" class="btn-login" id="btnLogin">Entrar</a>
         <div class="user-menu" id="userMenu" hidden>
           <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
             <span class="user-avatar" aria-hidden="true">🐾</span>
@@ -210,7 +210,7 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-logo">
-          <img src="assets/logo-meu4patas.png?v=adocao-3" alt="meu4patas">
+          <img src="assets/logo-meu4patas.png?v=logo-final-1" alt="meu4patas">
         </div>
         <p class="footer-tagline">Conectamos animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.</p>
         <div class="footer-social">
@@ -261,10 +261,24 @@
     </div>
   </div>
 
+  <!-- ───────────── PAINEL DE INTERESSADOS ───────────── -->
+  <div class="interessados-overlay" id="interessadosOverlay" hidden role="dialog" aria-modal="true" aria-label="Interessados">
+    <div class="interessados-panel">
+      <div class="interessados-header">
+        <div>
+          <p class="interessados-title">Interessados em</p>
+          <h2 class="interessados-pet-name" id="interessadosNomePet"></h2>
+        </div>
+        <button class="interessados-close" id="interessadosClose" type="button" aria-label="Fechar">✕</button>
+      </div>
+      <div class="interessados-list" id="interessadosContent"></div>
+    </div>
+  </div>
+
   <!-- ───────────── TOAST ───────────── -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/script.js?v=adocao-3"></script>
+  <script src="js/script.js?v=fix-v20"></script>
 </body>
 </html>
