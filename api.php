@@ -169,6 +169,38 @@ function initDB(): void {
 
     /* Seed de dados de teste */
     seedData($pdo);
+
+    /* Saneamento de integridade das adoções (Fase 0.5) */
+    sanitizeAdocoes($pdo);
+}
+
+/**
+ * Garante a integridade entre pets e adotantes (Fase 0.5):
+ *  - pet "Adotado" deve ter adotante_id;
+ *  - pet "Disponível" não deve ter adotante_id.
+ * Idempotente: pode rodar a cada inicialização sem efeitos colaterais.
+ */
+function sanitizeAdocoes(PDO $pdo): void {
+    /* Relaciona os pets de demonstração adotados ao adotante correspondente,
+       caso ainda estejam sem vínculo (adotante_id NULL). */
+    $nomePorChave = ['ana' => 'Ana Silva', 'admin' => 'Arthur Santos'];
+    $achaAdotante = $pdo->prepare("SELECT id FROM adotantes WHERE nome_completo=? ORDER BY id LIMIT 1");
+    $vincula = $pdo->prepare("
+        UPDATE pets SET adotante_id=?, atualizado_em=CURRENT_TIMESTAMP
+        WHERE nome_pet=? AND imagem=? AND status='Adotado' AND adotante_id IS NULL
+    ");
+
+    foreach (demoPets() as $p) {
+        if (empty($p['adotante_key'])) continue;
+        $nome = $nomePorChave[$p['adotante_key']] ?? null;
+        if (!$nome) continue;
+        $achaAdotante->execute([$nome]);
+        $aid = (int) $achaAdotante->fetchColumn();
+        if ($aid > 0) $vincula->execute([$aid, $p['nome_pet'], $p['imagem']]);
+    }
+
+    /* Integridade reversa: pet disponível não pode estar com adotante vinculado. */
+    $pdo->exec("UPDATE pets SET adotante_id=NULL WHERE status='Disponível' AND adotante_id IS NOT NULL");
 }
 
 function seedData(PDO $pdo): void {
@@ -603,6 +635,28 @@ try {
                 'adotantes' => (int) $pdo->query("SELECT COUNT(*) FROM adotantes")->fetchColumn(),
                 'pets' => (int) $pdo->query("SELECT COUNT(*) FROM pets")->fetchColumn(),
             ], 'API meu4patas funcionando.');
+        }
+
+        /* ─── STATUS (diagnóstico da base) ─── */
+        case 'status': {
+            $pdo = getPDO();
+            $fk = (int) $pdo->query("PRAGMA foreign_keys")->fetchColumn();
+            $conta = function (string $t) use ($pdo): int {
+                try { return (int) $pdo->query("SELECT COUNT(*) FROM $t")->fetchColumn(); }
+                catch (Throwable $e) { return 0; }
+            };
+            ok([
+                'app'           => 'meu4patas',
+                'database'      => file_exists(__DIR__ . '/banco.db') ? 'ok' : 'ausente',
+                'foreign_keys'  => $fk ? 'on' : 'off',
+                'tables'        => [
+                    'usuarios'   => $conta('usuarios'),
+                    'adotantes'  => $conta('adotantes'),
+                    'pets'       => $conta('pets'),
+                    'interesses' => $conta('interesses'),
+                    'recusas'    => $conta('recusas'),
+                ],
+            ], 'Status da base meu4patas.');
         }
 
         /* ─── SESSÃO ─── */

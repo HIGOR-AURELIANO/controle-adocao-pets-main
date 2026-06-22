@@ -1,97 +1,146 @@
--- Active: 1781265265575@@localhost@5432@petmatch
-CREATE DATABASE petmatch;
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY, -- Identificador único do usuário gerado automaticamente pelo banco (Evita repetições)
-    name VARCHAR(100) NOT NULL, -- Nome completo do usuário (Obrigatório, não permite valor nulo)
-    email VARCHAR(100) UNIQUE NOT NULL, -- E-mail do usuário (Obrigatório e único, não permite e-mails repetidos no app)
-    password_hash VARCHAR(255) NOT NULL, -- Senha do usuário criptografada para total segurança no banco
-    phone VARCHAR(20), -- Telefone de contato (Opcional, o usuário pode escolher não cadastrar)
-    city VARCHAR(50) DEFAULT 'Belo Horizonte', -- Cidade do usuário (Se ele esquecer de preencher, o padrão será BH)
-    state VARCHAR(2) DEFAULT 'MG', -- Estado/UF do usuário (Se ele esquecer de preencher, o padrão será MG)
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Data e hora exata em que o usuário realizador o cadastro no sistema
+-- ═══════════════════════════════════════════════════════════════
+--  meu4patas — Schema do banco de dados (SQLite)
+-- ───────────────────────────────────────────────────────────────
+--  Este arquivo documenta a estrutura REAL usada pelo sistema.
+--  O banco é criado e mantido automaticamente por api.php (initDB()),
+--  no arquivo banco.db. Este script serve como referência e pode
+--  recriar a estrutura do zero em um banco SQLite vazio.
+--
+--  Stack: PHP 8 + SQLite + PDO. Não usar PostgreSQL/MySQL.
+-- ═══════════════════════════════════════════════════════════════
+
+PRAGMA foreign_keys = ON;
+
+-- ───────────────────────────────────────────────────────────────
+-- Tabela: usuarios
+-- Contas de pessoas que usam a plataforma (adotar ou divulgar pets).
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS usuarios (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_completo         TEXT NOT NULL,
+    cpf                   TEXT NOT NULL UNIQUE,          -- CPF formatado
+    cpf_limpo             TEXT NOT NULL UNIQUE,          -- CPF apenas dígitos
+    email                 TEXT NOT NULL UNIQUE,
+    telefone              TEXT NOT NULL,
+    data_nascimento       TEXT NOT NULL,                 -- AAAA-MM-DD
+    idade                 INTEGER NOT NULL,
+    maior21               INTEGER NOT NULL DEFAULT 0,    -- 1 se >= 21 anos
+    cidade                TEXT NOT NULL,
+    uf                    TEXT NOT NULL,
+    bairro                TEXT NOT NULL DEFAULT '',
+    tipo_cadastro         TEXT NOT NULL DEFAULT 'adotar',
+    tipo_moradia          TEXT NOT NULL DEFAULT '',
+    possui_outros_animais TEXT NOT NULL DEFAULT 'nao',
+    ja_adotou_antes       TEXT NOT NULL DEFAULT 'nao',
+    senha_hash            TEXT NOT NULL,                 -- password_hash()
+    aceita_termos         INTEGER NOT NULL DEFAULT 0,
+    criado_em             TEXT DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em         TEXT
 );
 
-CREATE TABLE animals (
-    id SERIAL PRIMARY KEY, -- Identificador único do pet gerado automaticamente pelo banco
-    name VARCHAR(100) NOT NULL, -- Nome do animal (Obrigatório)
-    age INTEGER NOT NULL, -- Idade do animal em anos (Guarda apenas números inteiros)
-    raca VARCHAR(50) NOT NULL, -- Raça do animal (Ex: Vira-lata, Poodle, Siamês)
-    species VARCHAR(30) NOT NULL, -- Tipo de espécie (Ex: Cachorro, Gato, Ave)
-    city VARCHAR(50) NOT NULL, -- Cidade onde o animal se encontra para adoçãoe
-    state VARCHAR(2) NOT NULL, -- Estado/UF (Ex: MG, SP, RJ)
-    dewormed BOOLEAN DEFAULT FALSE, -- Ficha Médica: Tomou vermífugo? (TRUE para sim, FALSE para não)
-    leishmaniasis_negative BOOLEAN DEFAULT FALSE, -- Ficha Médica: Teste de leishmaniose deu negativo? (TRUE/FALSE)
-    is_vaccinated BOOLEAN DEFAULT FALSE, -- Ficha Médica: Está com as vacinas gerais em dia? (TRUE/FALSE)
-    available BOOLEAN DEFAULT TRUE, -- Status: Se TRUE, o pet aparece no app. Se FALSE (adotado/em tratamento), o app esconde.
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Data e hora exata em que o pet foi cadastrado no sistema
+-- ───────────────────────────────────────────────────────────────
+-- Tabela: adotantes
+-- Registro de quem efetivamente adotou um pet (vínculo histórico).
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS adotantes (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id    INTEGER,                               -- pode ser NULL (adotante externo)
+    nome_completo TEXT NOT NULL,
+    telefone      TEXT NOT NULL,
+    endereco      TEXT,
+    cidade        TEXT NOT NULL,
+    uf            TEXT NOT NULL,
+    bairro        TEXT,
+    tipo_moradia  TEXT,
+    criado_em     TEXT DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TEXT,
+    FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 );
 
-
-CREATE TABLE adoption_requests ( --pedidos de adoação---
-    id SERIAL PRIMARY KEY, -- Identificador único do pedido de adoção
-    user_id INTEGER NOT NULL REFERENCES users(id), -- Conecta direto com o ID do usuário que quer adotar
-    animal_id INTEGER NOT NULL REFERENCES animals(id), -- Conecta direto com o ID do pet que vai ser adotado
-    
-    -- Requisitos da imagem traduzidos para o banco
-    is_over_21 BOOLEAN DEFAULT FALSE, -- O usuário confirmou ser maior de 21 anos?
-    has_documents BOOLEAN DEFAULT FALSE, -- Entregou a cópia do RG e CPF?
-    proof_of_residence BOOLEAN DEFAULT FALSE, -- Entregou a cópia do comprovante de água/luz?
-    fee_paid BOOLEAN DEFAULT FALSE, -- Confirmou a contribuição de R$50,00 (ajuda de custo)?
-    has_transport_gear BOOLEAN DEFAULT FALSE, -- Confirmou que tem a caixa de transporte (gato) ou guia peitoral (cão)?
-    
-    -- Fluxo da entrevista com a ONG
-    interview_status VARCHAR(20) DEFAULT 'Pendente', -- Status da entrevista: Pendente, Aprovado ou Reprovado
-    
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Quando o usuário clicou no botão "Adotar"
+-- ───────────────────────────────────────────────────────────────
+-- Tabela: pets
+-- Animais cadastrados para adoção, com ficha completa.
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pets (
+    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_pet                 TEXT NOT NULL,
+    especie                  TEXT NOT NULL,
+    raca                     TEXT NOT NULL,
+    idade_aproximada         TEXT NOT NULL,
+    idade_meses              INTEGER NOT NULL DEFAULT 0,
+    sexo                     TEXT NOT NULL,
+    cidade                   TEXT NOT NULL,
+    uf                       TEXT NOT NULL,
+    bairro                   TEXT DEFAULT '',
+    status                   TEXT NOT NULL DEFAULT 'Disponível',  -- Disponível | Indisponível | Adotado
+    descricao                TEXT NOT NULL,
+    temperamento             TEXT DEFAULT '',             -- valores separados por vírgula
+    lar_ideal                TEXT DEFAULT '',             -- valores separados por vírgula
+    imagem                   TEXT NOT NULL DEFAULT '',    -- caminho do asset ou data URI base64
+    responsavel_nome         TEXT NOT NULL,
+    responsavel_telefone     TEXT NOT NULL,
+    responsavel_tipo         TEXT NOT NULL DEFAULT 'Pessoa física',  -- Pessoa física | ONG | Lar temporário
+    tipo_cadastro            TEXT NOT NULL DEFAULT 'Pet individual',
+    quantidade               INTEGER DEFAULT 1,
+    leishmaniose             TEXT DEFAULT 'Não testado',
+    vermifugo                INTEGER DEFAULT 0,
+    v8_v10                   INTEGER DEFAULT 0,
+    antirrabica              INTEGER DEFAULT 0,
+    gripe_canina             INTEGER DEFAULT 0,
+    giardia                  INTEGER DEFAULT 0,
+    v4_v5                    INTEGER DEFAULT 0,
+    felv                     INTEGER DEFAULT 0,
+    castrado                 INTEGER DEFAULT 0,
+    condicao_especial        TEXT DEFAULT '',
+    observacoes_veterinarias TEXT DEFAULT '',
+    usuario_doador_id        INTEGER,                     -- quem cadastrou o pet
+    adotante_id              INTEGER NULL,                -- preenchido quando Adotado
+    criado_em                TEXT DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em            TEXT,
+    FOREIGN KEY(usuario_doador_id) REFERENCES usuarios(id)  ON DELETE SET NULL,
+    FOREIGN KEY(adotante_id)       REFERENCES adotantes(id) ON DELETE SET NULL
 );
 
+-- ───────────────────────────────────────────────────────────────
+-- Tabela: interesses
+-- "Tenho interesse": demonstração de interesse de um usuário em um pet.
+-- Não realiza adoção direta — apenas registra o interesse para avaliação.
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS interesses (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id  INTEGER NOT NULL,
+    pet_id      INTEGER NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'Interesse enviado',
+                -- Interesse enviado | Em conversa | Aprovado | Adoção concluída | Recusado
+    mensagem    TEXT,
+    criado_em   TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY(pet_id)     REFERENCES pets(id)     ON DELETE CASCADE,
+    UNIQUE(usuario_id, pet_id)
+);
 
--- =========================================================
--- ALIMENTANDO O BANCO DE DADOS (INSERÇÃO DE TESTE)
--- =========================================================
+-- ───────────────────────────────────────────────────────────────
+-- Tabela: recusas
+-- Pets que o usuário descartou ("não tenho interesse"), para não exibir de novo.
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS recusas (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER,
+    pet_id     INTEGER NOT NULL,
+    criado_em  TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+    FOREIGN KEY(pet_id)     REFERENCES pets(id)     ON DELETE CASCADE
+);
 
--- 1. Cadastrando os primeiros usuários fictícios
-INSERT INTO users (name, email, password_hash, phone, city, state) VALUES
-('Ana Silva', 'ana.silva@email.com', 'hash_senha_123', '31999991111', 'Belo Horizonte', 'MG'),
-('Arthur Santos', 'arthur.santos@email.com', 'hash_senha_456', '31999992222', 'Contagem', 'MG'),
-('Rayssa Caetano', 'rayssa.dev@email.com', 'hash_senha_789', '31999993333', 'Belo Horizonte', 'MG');
+-- ───────────────────────────────────────────────────────────────
+-- Índices auxiliares
+-- ───────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_pets_demo_lookup ON pets (nome_pet, imagem);
+CREATE INDEX IF NOT EXISTS idx_interesses_pet   ON interesses (pet_id);
+CREATE INDEX IF NOT EXISTS idx_recusas_pet      ON recusas (pet_id);
 
--- 2. Cadastrando os 26 pets do projeto (mesmos dados de js/script.js — INITIAL_PETS)
---    species: 'Cão' do app é gravado como 'Cachorro' | age = idade em anos (idadeMeses/12)
---    available = TRUE quando status 'Disponível' (Indisponível/Adotado = FALSE)
-INSERT INTO animals (name, age, raca, species, city, state, dewormed, leishmaniasis_negative, is_vaccinated, available) VALUES
-('Luna', 2, 'Sem raça definida (SRD)', 'Cachorro', 'Belo Horizonte', 'MG', TRUE, TRUE, TRUE, TRUE),  -- id 1 · Disponível
-('Thor', 1, 'Golden Retriever', 'Cachorro', 'Belo Horizonte', 'MG', TRUE, TRUE, TRUE, TRUE),  -- id 2 · Disponível
-('Rex', 3, 'Vira-lata', 'Cachorro', 'Contagem', 'MG', TRUE, FALSE, TRUE, FALSE),  -- id 3 · Indisponível
-('Mel', 0, 'Siamês', 'Gato', 'Belo Horizonte', 'MG', TRUE, FALSE, TRUE, TRUE),  -- id 4 · Disponível
-('Nina', 1, 'Sem raça definida (SRD)', 'Gato', 'São Paulo', 'SP', TRUE, FALSE, TRUE, FALSE),  -- id 5 · Adotado
-('Ninhada da Mel', 0, 'Sem raça definida (SRD)', 'Gato', 'Belo Horizonte', 'MG', TRUE, FALSE, FALSE, TRUE),  -- id 6 · Disponível
-('Bidu', 4, 'Shih Tzu', 'Cachorro', 'São Paulo', 'SP', TRUE, TRUE, TRUE, TRUE),  -- id 7 · Disponível
-('Amora', 2, 'Poodle', 'Cachorro', 'Rio de Janeiro', 'RJ', TRUE, TRUE, TRUE, FALSE),  -- id 8 · Adotado
-('Zeus', 0, 'Pastor Alemão', 'Cachorro', 'Porto Alegre', 'RS', TRUE, TRUE, TRUE, TRUE),  -- id 9 · Disponível
-('Mike', 3, 'Labrador Retriever', 'Cachorro', 'Salvador', 'BA', TRUE, TRUE, TRUE, TRUE),  -- id 10 · Disponível
-('Frida', 1, 'Beagle', 'Cachorro', 'Curitiba', 'PR', TRUE, TRUE, TRUE, TRUE),  -- id 11 · Disponível
-('Tobias', 0, 'Bulldog Francês', 'Cachorro', 'Florianópolis', 'SC', TRUE, FALSE, TRUE, TRUE),  -- id 12 · Disponível
-('Pingo', 5, 'Dachshund', 'Cachorro', 'Recife', 'PE', TRUE, TRUE, TRUE, FALSE),  -- id 13 · Indisponível
-('Maya', 2, 'Border Collie', 'Cachorro', 'Brasília', 'DF', TRUE, TRUE, TRUE, TRUE),  -- id 14 · Disponível
-('Bartô', 4, 'Pitbull', 'Cachorro', 'Fortaleza', 'CE', TRUE, TRUE, TRUE, TRUE),  -- id 15 · Disponível
-('Nala', 3, 'Husky Siberiano', 'Cachorro', 'Goiânia', 'GO', TRUE, TRUE, TRUE, TRUE),  -- id 16 · Disponível
-('Fred', 0, 'Vira-lata', 'Cachorro', 'Vitória', 'ES', TRUE, FALSE, FALSE, TRUE),  -- id 17 · Disponível
-('Bela', 7, 'Yorkshire Terrier', 'Cachorro', 'Uberlândia', 'MG', TRUE, TRUE, TRUE, TRUE),  -- id 18 · Disponível
-('Lola', 3, 'Persa', 'Gato', 'Campinas', 'SP', TRUE, FALSE, TRUE, TRUE),  -- id 19 · Disponível
-('Simba', 4, 'Maine Coon', 'Gato', 'Niterói', 'RJ', TRUE, FALSE, TRUE, FALSE),  -- id 20 · Indisponível
-('Chico', 2, 'Sem raça definida (SRD)', 'Gato', 'Manaus', 'AM', TRUE, FALSE, TRUE, TRUE),  -- id 21 · Disponível
-('Pretinha', 1, 'Sem raça definida (SRD)', 'Gato', 'Belém', 'PA', TRUE, FALSE, TRUE, TRUE),  -- id 22 · Disponível
-('Aurora', 2, 'Ragdoll', 'Gato', 'Cuiabá', 'MT', TRUE, FALSE, TRUE, TRUE),  -- id 23 · Disponível
-('Tom', 3, 'Sphynx', 'Gato', 'Campo Grande', 'MS', TRUE, FALSE, TRUE, TRUE),  -- id 24 · Disponível
-('Mimi', 0, 'Angorá', 'Gato', 'Natal', 'RN', TRUE, FALSE, FALSE, TRUE),  -- id 25 · Disponível
-('Bigode', 2, 'Bengal', 'Gato', 'João Pessoa', 'PB', TRUE, FALSE, TRUE, TRUE);  -- id 26 · Disponível
-
-
--- 3. Simulando os pedidos de adoção com as regras dos requisitos
-INSERT INTO adoption_requests (user_id, animal_id, is_over_21, has_documents, proof_of_residence, fee_paid, has_transport_gear, interview_status) VALUES
-(1, 2, TRUE, TRUE, TRUE, TRUE, TRUE, 'Aprovado'), -- Ana Silva adotando o Thor (id 2 — Tudo OK)
-(2, 4, TRUE, TRUE, FALSE, FALSE, TRUE, 'Pendente'); -- Arthur tentando adotar a Mel (id 4 — Falta luz/água e taxa)
-
--- 📊 RELATÓRIO DO MATCH DE ADOÇÃO (CONSULTA COMPLETA)
--- =========================================================
+-- ═══════════════════════════════════════════════════════════════
+--  Observação: os dados de demonstração (usuários, adotantes e os
+--  26 pets) são populados automaticamente por api.php em initDB()
+--  / seedData(), não por este arquivo.
+-- ═══════════════════════════════════════════════════════════════

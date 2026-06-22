@@ -2271,3 +2271,83 @@ a { color: var(--verde-claro); }
   .modal-body { padding: 22px 18px 26px; }
   .card-form { padding: 22px 18px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   PAINEL DE ADOÇÃO
+═══════════════════════════════════════════════════════ */
+.painel-root {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 40px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.painel-card { margin-top: 8px; }
+.painel-card-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  color: var(--verde);
+  margin-bottom: 6px;
+}
+.painel-card-lead { color: var(--cinza); margin-bottom: 20px; font-size: 0.95rem; }
+.painel-confirm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+.painel-confirm-grid .btn-primary { height: 48px; white-space: nowrap; }
+
+.painel-section { }
+.painel-section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.25rem;
+  color: var(--grafite);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.painel-count {
+  background: var(--verde);
+  color: var(--creme);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 100px;
+}
+.painel-list { display: flex; flex-direction: column; gap: 12px; }
+.painel-item {
+  background: var(--branco);
+  border: 1px solid var(--bege);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.painel-item-main { display: flex; flex-direction: column; gap: 3px; }
+.painel-item-main > strong { font-size: 1.05rem; color: var(--grafite); }
+.painel-item-sub { color: var(--cinza); font-size: 0.85rem; }
+.painel-item-adotante { color: var(--verde-medio); font-size: 0.85rem; margin-top: 2px; }
+.painel-item-meta { display: flex; align-items: center; gap: 12px; }
+.painel-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 100px;
+  display: inline-block;
+}
+.painel-btn-desfazer { padding: 8px 14px; font-size: 0.82rem; }
+.painel-empty { color: var(--cinza); font-size: 0.9rem; padding: 8px 0; }
+
+@media (max-width: 760px) {
+  .painel-root { padding: 0 20px 48px; }
+  .painel-confirm-grid { grid-template-columns: 1fr; }
+  .painel-confirm-grid .btn-primary { width: 100%; }
+}

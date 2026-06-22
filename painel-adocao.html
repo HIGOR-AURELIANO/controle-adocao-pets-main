@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de adoção — meu4patas</title>
+  <meta name="description" content="Painel de adoção do meu4patas: confirme e gerencie as adoções dos pets.">
+  <link rel="icon" type="image/png" href="assets/logo-meu4patas.png?v=adocao-3">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=adocao-3">
+</head>
+<body>
+
+  <!-- ───────────── TOP BAR ───────────── -->
+  <header class="topbar">
+    <a class="nav-logo" href="index.html" aria-label="meu4patas - início">
+      <img src="assets/logo-meu4patas.png?v=adocao-3" alt="meu4patas" height="38">
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav-menu" id="navMenu">
+      <ul class="nav-links">
+        <li><a href="index.html#inicio">Início</a></li>
+        <li><a href="index.html#explorar">Explorar pets</a></li>
+        <li><a href="index.html#como-funciona">Como funciona</a></li>
+        <li><a href="cadastrar-pet.html">Cadastrar pet</a></li>
+        <li><a href="index.html#requisitos">Requisitos</a></li>
+      </ul>
+      <div class="nav-user" id="navUser">
+        <a href="login.html" class="btn-login" id="btnLogin">Entrar</a>
+        <a href="cadastro.html" class="btn-cadastrar" id="btnAuth">Criar conta</a>
+        <div class="user-menu" id="userMenu" hidden>
+          <button class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="user-avatar" aria-hidden="true">🐾</span>
+            <span class="user-chip-name" id="navUserName">Conta</span>
+            <span class="user-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" hidden>
+            <a href="perfil.html">👤 Minha conta</a>
+            <a href="painel-adocao.html" class="active">📋 Painel de adoção</a>
+            <button type="button" id="btnLogoutMenu">↩ Sair</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ───────────── CABEÇALHO DA PÁGINA ───────────── -->
+  <section class="page-head">
+    <div class="page-head-inner">
+      <a class="back-link" href="perfil.html">← Voltar para Minha conta</a>
+      <p class="section-eyebrow">Gestão de adoções</p>
+      <h1 class="page-title">Painel de adoção</h1>
+      <p class="page-lead">Confirme adoções vinculando um pet a um adotante, acompanhe os animais disponíveis e desfaça adoções quando necessário.</p>
+    </div>
+  </section>
+
+  <!-- ───────────── CONTEÚDO ───────────── -->
+  <main class="profile-page">
+    <div id="painelRoot" class="painel-root"><!-- preenchido pelo script abaixo --></div>
+  </main>
+
+  <!-- ───────────── FOOTER ───────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="assets/logo-meu4patas.png?v=adocao-3" alt="meu4patas">
+        </div>
+        <p class="footer-tagline">Conectamos animais que precisam de um lar a pessoas dispostas a adotar com responsabilidade.</p>
+      </div>
+      <nav class="footer-col">
+        <h4 class="footer-col-title">Navegar</h4>
+        <ul>
+          <li><a href="index.html#inicio">Início</a></li>
+          <li><a href="index.html#explorar">Explorar pets</a></li>
+          <li><a href="perfil.html">Minha conta</a></li>
+          <li><a href="painel-adocao.html">Painel de adoção</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 meu4patas — Todo pet merece um lar de verdade.</span>
+      <span class="footer-made">Feito com 💛 pelo Grupo 6 · <strong>Adote, não compre</strong></span>
+    </div>
+  </footer>
+
+  <!-- ───────────── TOAST ───────────── -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/script.js?v=adocao-3"></script>
+  <script>
+  /* ───────── Painel de adoção (usa actions existentes da api.php) ───────── */
+  (function () {
+    const root = document.getElementById('painelRoot');
+    if (!root) return;
+
+    const esc = (s) => (window.escapeHtml ? window.escapeHtml(String(s ?? '')) : String(s ?? ''));
+    const aviso = (msg, tipo) => (window.showToast ? window.showToast(msg, tipo) : alert(msg));
+
+    function guardLogin() {
+      root.innerHTML = `
+        <div class="profile-guard">
+          <div class="explore-empty-emoji">🔒</div>
+          <h3>Acesso restrito</h3>
+          <p>Você precisa estar logado para usar o painel de adoção.</p>
+          <a class="btn-primary" href="login.html">Entrar na minha conta</a>
+        </div>`;
+    }
+
+    function statusBadge(status) {
+      const map = {
+        'Disponível':   'badge-ok',
+        'Indisponível': 'badge-warn',
+        'Adotado':      'badge-adopt'
+      };
+      return `<span class="painel-badge ${map[status] || ''}">${esc(status)}</span>`;
+    }
+
+    function render(pets, adotantes) {
+      const disp = pets.filter(p => p.status === 'Disponível');
+      const adot = pets.filter(p => p.status === 'Adotado');
+
+      const optPets = disp.length
+        ? disp.map(p => `<option value="${p.id}">${esc(p.nome_pet)} — ${esc(p.cidade)}/${esc(p.uf)}</option>`).join('')
+        : '';
+      const optAdot = adotantes.length
+        ? adotantes.map(a => `<option value="${a.id}">${esc(a.nome_completo)} — ${esc(a.cidade)}/${esc(a.uf)}</option>`).join('')
+        : '';
+
+      const cardConfirmar = `
+        <div class="card-form painel-card">
+          <h2 class="painel-card-title">Confirmar adoção</h2>
+          <p class="painel-card-lead">Vincule um pet disponível a um adotante cadastrado para registrar a adoção.</p>
+          ${(disp.length && adotantes.length) ? `
+          <div class="painel-confirm-grid">
+            <div class="form-group">
+              <label for="selPet">Pet disponível</label>
+              <select id="selPet">${optPets}</select>
+            </div>
+            <div class="form-group">
+              <label for="selAdotante">Adotante</label>
+              <select id="selAdotante">${optAdot}</select>
+            </div>
+            <button id="btnConfirmar" class="btn-primary" type="button">Confirmar adoção</button>
+          </div>` : `
+          <p class="painel-empty">${!disp.length ? 'Nenhum pet disponível para adoção no momento.' : ''} ${!adotantes.length ? 'Nenhum adotante cadastrado ainda.' : ''}</p>`}
+        </div>`;
+
+      const listaDisp = `
+        <section class="painel-section">
+          <h2 class="painel-section-title">Pets disponíveis <span class="painel-count">${disp.length}</span></h2>
+          ${disp.length ? `<div class="painel-list">${disp.map(p => `
+            <div class="painel-item">
+              <div class="painel-item-main">
+                <strong>${esc(p.nome_pet)}</strong>
+                <span class="painel-item-sub">${esc(p.especie)} · ${esc(p.cidade)}/${esc(p.uf)}</span>
+              </div>
+              <div class="painel-item-meta">
+                ${statusBadge(p.status)}
+                <span class="painel-item-sub">${Number(p.total_interesses) || 0} interesse(s)</span>
+              </div>
+            </div>`).join('')}</div>` : `<p class="painel-empty">Nenhum pet disponível.</p>`}
+        </section>`;
+
+      const listaAdot = `
+        <section class="painel-section">
+          <h2 class="painel-section-title">Pets adotados <span class="painel-count">${adot.length}</span></h2>
+          ${adot.length ? `<div class="painel-list">${adot.map(p => `
+            <div class="painel-item">
+              <div class="painel-item-main">
+                <strong>${esc(p.nome_pet)}</strong>
+                <span class="painel-item-sub">${esc(p.especie)} · ${esc(p.cidade)}/${esc(p.uf)}</span>
+                <span class="painel-item-adotante">🏡 Adotado por <strong>${esc(p.adotante_nome || 'Adotante não informado')}</strong></span>
+              </div>
+              <div class="painel-item-meta">
+                ${statusBadge(p.status)}
+                <button class="btn-login painel-btn-desfazer" type="button" data-desfazer="${p.id}">Desfazer adoção</button>
+              </div>
+            </div>`).join('')}</div>` : `<p class="painel-empty">Nenhum pet adotado ainda.</p>`}
+        </section>`;
+
+      root.innerHTML = cardConfirmar + listaDisp + listaAdot;
+      ligarEventos();
+    }
+
+    function ligarEventos() {
+      const btn = document.getElementById('btnConfirmar');
+      if (btn) btn.addEventListener('click', confirmar);
+      root.querySelectorAll('[data-desfazer]').forEach(b =>
+        b.addEventListener('click', () => desfazer(Number(b.dataset.desfazer))));
+    }
+
+    async function confirmar() {
+      const petId = Number(document.getElementById('selPet')?.value);
+      const adotanteId = Number(document.getElementById('selAdotante')?.value);
+      if (!petId || !adotanteId) { aviso('Selecione um pet e um adotante.', 'error'); return; }
+      const r = await window.api('confirmar_adocao', { pet_id: petId, adotante_id: adotanteId });
+      aviso(r.message || (r.success ? 'Adoção confirmada!' : 'Erro ao confirmar.'), r.success ? 'success' : 'error');
+      if (r.success) carregar();
+    }
+
+    async function desfazer(petId) {
+      if (!petId) return;
+      const r = await window.api('desfazer_adocao', { pet_id: petId });
+      aviso(r.message || (r.success ? 'Adoção desfeita.' : 'Erro ao desfazer.'), r.success ? 'success' : 'error');
+      if (r.success) carregar();
+    }
+
+    async function carregar() {
+      const [petsR, adotR] = await Promise.all([
+        window.api('painel_adocao'),
+        window.api('listar_adotantes')
+      ]);
+      if (petsR && petsR.success === false && petsR.message && /logad/i.test(petsR.message)) {
+        guardLogin();
+        return;
+      }
+      render(petsR.data || [], adotR.data || []);
+    }
+
+    let iniciado = false;
+    async function iniciar() {
+      if (iniciado) return;
+      iniciado = true;
+      if (!window.api) { aviso('Erro ao carregar o painel.', 'error'); return; }
+      const sess = await window.api('sessao');
+      if (!sess || !sess.success || !sess.data) { guardLogin(); return; }
+      carregar();
+    }
+
+    document.addEventListener('DOMContentLoaded', iniciar);
+    /* Caso o DOM já esteja pronto quando este script roda */
+    if (document.readyState !== 'loading') iniciar();
+  })();
+  </script>
+</body>
+</html>
